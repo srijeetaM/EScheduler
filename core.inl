@@ -1318,96 +1318,106 @@ std::vector<cl_program> build_kernel(KernelInfo& ki,  std::vector<std::vector<cl
 
     // printf("0: %u, 1: %u",ctxs[0],ctxs[1]);
     std::vector<cl_program> programs(NumOfPlatforms);
-    programs[PLATFORM_GPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_GPU], PLATFORM_GPU);
-    programs[PLATFORM_CPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_CPU],PLATFORM_CPU);
-    if (LOG_LEVEL >=1)
+    std::string kernel_file = ki.kernelSource;
+    std::string kernel_file_bin_cpu = "src/"+kernel_file.erase(ki.kernelSource.length()-3)+"_cpu.bin";
+    std::string kernel_file_bin_gpu = "src/"+kernel_file.erase(ki.kernelSource.length()-3)+"_gpu.bin";
+    if(!file_exists(kernel_file_bin_cpu) && !file_exists(kernel_file_bin_gpu))
     {
-        fprintf(fp, "\tComplied Programs: %s\n",ki.kernelSource.c_str());
+        printf("Trying to compile program %s\n",ki.kernelSource.c_str());
+        programs[PLATFORM_GPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_GPU], PLATFORM_GPU);
+        programs[PLATFORM_CPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_CPU],PLATFORM_CPU);
+        if (LOG_LEVEL >=1)
+        {
+            fprintf(fp, "\tComplied Programs: %s\n",ki.kernelSource.c_str());
+        }
+        // printf("\tComplied Programs: %s\n",ki.kernelSource.c_str());
+        //string options="-g";
+
+        status = clBuildProgram(programs[PLATFORM_GPU], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
+
+        if(status==CL_SUCCESS)
+        {   fprintf(fp," CL_SUCCESS\n");
+            // printf(" CL_SUCCESS\n");
+        }
+        else if(status==CL_INVALID_PROGRAM)
+        	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
+        else if(status==CL_INVALID_VALUE)
+        	fprintf(fp," Error: CL_INVALID_VALUE\n");
+        else if(status==CL_INVALID_DEVICE)
+        	fprintf(fp," Error: CL_INVALID_DEVICE\n");
+        else if(status==CL_INVALID_BINARY)
+        	fprintf(fp," Error: CL_INVALID_BINARY\n");
+        else if(status==CL_INVALID_BUILD_OPTIONS)
+        	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_COMPILER_NOT_AVAILABLE)
+        	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
+        else if(status==CL_BUILD_PROGRAM_FAILURE)
+        	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_OUT_OF_RESOURCES)
+        	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
+        else if(status==CL_OUT_OF_HOST_MEMORY)
+        	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
+
+        check(status, "Building Program");
+        // printf("Building Program GPU\n");
+
+
+        // if(status != CL_SUCCESS){   
+        //     size_t len = 0;      
+        //     clBuildProgram(programs[0], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
+        //     clGetProgramBuildInfo(programs[0], deviceId, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);  
+        //     char *buffer = calloc(len, sizeof(char));                                    //     ret = clGetProgramBuildInfo(program, deviceId, CL_PROGRAM_BUILD_LOG, len, buffer, NULL);                                                                      //     fprintf(fp, " %s\n", buffer);                                                // }       
+        
+        status = clBuildProgram(programs[PLATFORM_CPU], num_cpus, cpu, ki.options.c_str(), NULL, NULL);
+        
+        if(status=CL_SUCCESS)
+        {   fprintf(fp," CL_SUCCESS\n");
+            // printf(" CL_SUCCESS\n");
+        }
+        else if(status==CL_INVALID_PROGRAM)
+        	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
+        else if(status==CL_INVALID_VALUE)
+        	fprintf(fp," Error: CL_INVALID_VALUE\n");
+        else if(status==CL_INVALID_DEVICE)
+        	fprintf(fp," Error: CL_INVALID_DEVICE\n");
+        else if(status==CL_INVALID_BINARY)
+        	fprintf(fp," Error: CL_INVALID_BINARY\n");
+        else if(status==CL_INVALID_BUILD_OPTIONS)
+        	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_COMPILER_NOT_AVAILABLE)
+        	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
+        else if(status==CL_BUILD_PROGRAM_FAILURE)
+        	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_OUT_OF_RESOURCES)
+        	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
+        else if(status==CL_OUT_OF_HOST_MEMORY)
+        	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
+
+        check(status, "Building Program");
+
+        // printf("Building Program CPU\n");
+
+        if (LOG_LEVEL >=1)
+        {
+            fprintf(fp,"\tBuilding %s program\n",ki.KernelName.c_str());
+        }
+        
+       // write_binaries(kernel_file_bin_cpu,programs[PLATFORM_CPU],num_cpus,PLATFORM_CPU);
+       // write_binaries(kernel_file_bin_gpu,programs[PLATFORM_GPU],num_gpus,PLATFORM_GPU);
+
     }
-    // printf("\tComplied Programs: %s\n",ki.kernelSource.c_str());
-    //string options="-g";
-
-    status = clBuildProgram(programs[PLATFORM_GPU], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
-
-    if(status==CL_SUCCESS)
-    {   fprintf(fp," CL_SUCCESS\n");
-        // printf(" CL_SUCCESS\n");
-    }
-    else if(status==CL_INVALID_PROGRAM)
-    	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
-    else if(status==CL_INVALID_VALUE)
-    	fprintf(fp," Error: CL_INVALID_VALUE\n");
-    else if(status==CL_INVALID_DEVICE)
-    	fprintf(fp," Error: CL_INVALID_DEVICE\n");
-    else if(status==CL_INVALID_BINARY)
-    	fprintf(fp," Error: CL_INVALID_BINARY\n");
-    else if(status==CL_INVALID_BUILD_OPTIONS)
-    	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_COMPILER_NOT_AVAILABLE)
-    	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
-    else if(status==CL_BUILD_PROGRAM_FAILURE)
-    	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_OUT_OF_RESOURCES)
-    	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
-    else if(status==CL_OUT_OF_HOST_MEMORY)
-    	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
-
-    check(status, "Building Program");
-    // printf("Building Program GPU\n");
-
-
-    // if(status != CL_SUCCESS){   
-    //     size_t len = 0;      
-    //     clBuildProgram(programs[0], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
-    //     clGetProgramBuildInfo(programs[0], deviceId, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);  
-    //     char *buffer = calloc(len, sizeof(char));                                    //     ret = clGetProgramBuildInfo(program, deviceId, CL_PROGRAM_BUILD_LOG, len, buffer, NULL);                                                                      //     fprintf(fp, " %s\n", buffer);                                                // }       
-    
-    status = clBuildProgram(programs[PLATFORM_CPU], num_cpus, cpu, ki.options.c_str(), NULL, NULL);
-    
-    if(status=CL_SUCCESS)
-    {   fprintf(fp," CL_SUCCESS\n");
-        // printf(" CL_SUCCESS\n");
-    }
-    else if(status==CL_INVALID_PROGRAM)
-    	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
-    else if(status==CL_INVALID_VALUE)
-    	fprintf(fp," Error: CL_INVALID_VALUE\n");
-    else if(status==CL_INVALID_DEVICE)
-    	fprintf(fp," Error: CL_INVALID_DEVICE\n");
-    else if(status==CL_INVALID_BINARY)
-    	fprintf(fp," Error: CL_INVALID_BINARY\n");
-    else if(status==CL_INVALID_BUILD_OPTIONS)
-    	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_COMPILER_NOT_AVAILABLE)
-    	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
-    else if(status==CL_BUILD_PROGRAM_FAILURE)
-    	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_OUT_OF_RESOURCES)
-    	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
-    else if(status==CL_OUT_OF_HOST_MEMORY)
-    	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
-
-    check(status, "Building Program");
-
-    // printf("Building Program CPU\n");
-
-    if (LOG_LEVEL >=1)
-    {
-        fprintf(fp,"\tBuilding %s program\n",ki.KernelName.c_str());
-    }
-
     ki.kernelObjects.push_back(clCreateKernel(programs[PLATFORM_GPU], ki.KernelName.c_str(), &status));
     check(status, "\nCreating Kernel");
     ki.kernelObjects.push_back(clCreateKernel(programs[PLATFORM_CPU], ki.KernelName.c_str(), &status));
@@ -1433,7 +1443,11 @@ cl_program cl_compile_program(const char* kernel_file_name, cl_context ctx, int 
     sbuffer << f.rdbuf();
     std::string kernel_file_src = sbuffer.str();
     const char* program_src = kernel_file_src.c_str();
+    
+    
     // printf("platform_type: %d -> %u , %u\n",platform_type,ctx,all_ctxs[platform_type]);
+    
+
     cl_program program = clCreateProgramWithSource(ctx, 1, (const char**)&program_src, NULL, &status);
     
     if(status==CL_SUCCESS)
@@ -1454,6 +1468,7 @@ cl_program cl_compile_program(const char* kernel_file_name, cl_context ctx, int 
     }
 
     return program;
+
 }
 
 KernelInfo* assign_kernel_info(const char * info_file_name) {
@@ -1462,6 +1477,7 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
         fprintf(fp,"assign_kernel_info: BEGIN \n");
  	    fprintf(fp,"\tKERNEL INFORMATION: %s\n",info_file_name);
     }
+    printf("Opening file %s\n",info_file_name);
     FILE* kernel_info_file = fopen(info_file_name, "r");
     KernelInfo* kernel_info = new KernelInfo();
     char line[1024];
@@ -1536,11 +1552,11 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {
                     splitstring liststring(str_to_char_array(slist[1]));
                     vector<string> ssublist=liststring.split(',');
+                    printf("Updating input buffer information\n");
                     
-                    
-                    for (i = 0; i<ssublist.size(); i+=3) 
+                    for (i = 0; i<ssublist.size(); i+=4) 
                     {
-                        (kernel_info -> inputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str())));   
+                        (kernel_info -> inputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()), atoi(ssublist[i+3].c_str())));   
                     }
                     kernel_info -> noInputBuffers = (kernel_info -> inputBuffers).size();
                     
@@ -1549,11 +1565,11 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {
                     splitstring liststring(str_to_char_array(slist[1]));
                     vector<string> ssublist=liststring.split(',');
+                    printf("Updating output buffer information\n");
                     
-                    
-                    for (i = 0; i<ssublist.size(); i+=3) 
+                    for (i = 0; i<ssublist.size(); i+=4) 
                     {
-                        (kernel_info -> outputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()) ));   
+                        (kernel_info -> outputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()), atoi(ssublist[i+3].c_str()) ));   
                     }
                     kernel_info -> noOutputBuffers = (kernel_info -> outputBuffers).size();   
                     // printf("outputBuffers size: %d : %d\n",kernel_info -> noOutputBuffers,kernel_info->outputBuffers.size());
@@ -1563,11 +1579,11 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {
                     splitstring liststring(str_to_char_array(slist[1]));
                     vector<string> ssublist=liststring.split(',');                    
-                    
+                    printf("Updating input output buffer information\n");
 
-                    for (i = 0; i<ssublist.size(); i+=3) 
+                    for (i = 0; i<ssublist.size(); i+=4) 
                     {
-                        (kernel_info -> ioBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()) ));   
+                        (kernel_info -> ioBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()), atoi(ssublist[i+3].c_str()) ));   
                     }
                     kernel_info -> noIOBuffers = (kernel_info -> ioBuffers).size();   
                     
@@ -1620,7 +1636,7 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {                    
                   
                     (kernel_info -> options).assign(slist[1]+"="+slist[2]+"="+slist[3]+"="+slist[4]+"="+slist[5]+"="+slist[6]+"="+slist[7]+"="+slist[8]);
-                    //printf("slist: %s\n",kernel_info -> options.c_str());
+                    printf("slist: %s\n",kernel_info -> options.c_str());
                 }
             }
             

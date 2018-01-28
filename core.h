@@ -25,6 +25,7 @@
 #include <time.h>
 #include <thread> 
 #include <pthread.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include<sys/resource.h>
@@ -95,6 +96,9 @@ std::mutex mtx_rblock;
 std::mutex mtx_nlock;
 std::mutex mtx_devlock;
 std::string outputbuffer;
+/**************************** Helper functions ****************************************/
+
+//OpenCL Error Logs
 
 void print_profile_event_status(cl_int status)
 {
@@ -120,6 +124,102 @@ void check(cl_int status, const char* str) {
     }
 }
 
+//FILE IO
+
+inline bool file_exists(const std::string& name) 
+{
+  struct stat buffer;   
+  return (stat (name.c_str(), &buffer) == 0); 
+}
+
+int write_file(const char *name, const unsigned char *content, size_t size) 
+{
+  FILE *fp = fopen(name, "wb+");
+  if (!fp) 
+    return -1;
+  
+  fwrite(content, size, 1, fp);
+  fclose(fp);
+  return 0;
+}
+
+int read_file(unsigned char **output, size_t *size, const char *name) 
+{
+  FILE* fp = fopen(name, "rb");
+  if (!fp) 
+    return -1;
+  
+
+  fseek(fp, 0, SEEK_END);
+  *size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+
+  *output = (unsigned char *)malloc(*size);
+  if (!*output) 
+  {
+    fclose(fp);
+    return -1;
+  }
+
+  fread(*output, *size, 1, fp);
+  fclose(fp);
+  return 0;
+}
+
+cl_int write_binaries(std::string filename,cl_program program, unsigned num_devices,
+                      cl_uint platform_idx) {
+  unsigned i;
+  cl_int err = CL_SUCCESS;
+  size_t *binaries_size = NULL;
+  unsigned char **binaries_ptr = NULL;
+  printf("Generating binaries for %d devices of platform %d\n",num_devices,platform_idx);
+  // Read the binaries size
+  size_t binaries_size_alloc_size = sizeof(size_t) * num_devices;
+  binaries_size = (size_t *)malloc(binaries_size_alloc_size);
+  if (!binaries_size) {
+    err = CL_OUT_OF_HOST_MEMORY;
+   
+  }
+
+  err = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES,
+                         binaries_size_alloc_size, binaries_size, NULL);
+  if (err != CL_SUCCESS) {
+    
+  }
+
+  // Read the binaries
+  size_t binaries_ptr_alloc_size = sizeof(unsigned char *) * num_devices;
+  binaries_ptr = (unsigned char **)malloc(binaries_ptr_alloc_size);
+  if (!binaries_ptr) {
+    err = CL_OUT_OF_HOST_MEMORY;
+    
+  }
+  memset(binaries_ptr, 0, binaries_ptr_alloc_size);
+  for (i = 0; i < num_devices; ++i) {
+    binaries_ptr[i] = (unsigned char *)malloc(binaries_size[i]);
+    if (!binaries_ptr[i]) {
+      err = CL_OUT_OF_HOST_MEMORY;
+      
+    }
+  }
+
+  err = clGetProgramInfo(program, CL_PROGRAM_BINARIES, binaries_ptr_alloc_size,
+                         binaries_ptr, NULL);
+
+
+  // Write the binaries to file
+  for (i = 0; i < num_devices; ++i) {
+    // Create output file name
+ 
+    // Write the binary to the output file
+    write_file(filename.c_str(), binaries_ptr[i], binaries_size[i]);
+  }
+
+  return err;
+}
+
+
+/**************************** Helper functions ****************************************/
 
 typedef struct _jobinfo
 {  
@@ -153,10 +253,10 @@ typedef struct _kernelinfo
     int workDimension;
     size_t globalWorkSize[3];
     size_t localWorkSize[3];
-    // Data Type, Size, Position
-    std::vector < std::tuple <std::string, unsigned int, unsigned int> > inputBuffers;
-    std::vector < std::tuple <std::string, unsigned int, unsigned int> > outputBuffers;
-    std::vector < std::tuple <std::string, unsigned int, unsigned int> > ioBuffers;
+    // Data Type, Size, Position,Persistence
+    std::vector < std::tuple <std::string, unsigned int, unsigned int, unsigned int> > inputBuffers;
+    std::vector < std::tuple <std::string, unsigned int, unsigned int, unsigned int> > outputBuffers;
+    std::vector < std::tuple <std::string, unsigned int, unsigned int, unsigned int> > ioBuffers;
     std::vector < std::tuple <std::string, unsigned int, unsigned int> > varArguments;
     std::vector < std::tuple <std::string, unsigned int, unsigned int> > localArguments;
     std::vector < unsigned long long int> nonPartition;  
@@ -164,6 +264,8 @@ typedef struct _kernelinfo
     std::string options;
     std::vector <float> localSizeFactor;
     unsigned long long int chunkSizeTiming;
+    int configured = 0;
+
 } KernelInfo;
 
 

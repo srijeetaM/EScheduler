@@ -1,25 +1,25 @@
 
 DEVICE INFO:
 
-DeviceID_0-0: 3065708736,
+DeviceID_0-0: 3065553088,
 DeviceName: Mali-T628, 
 Type: GPU, 
 Platform: ARM Platform, 
 Vendor: ARM, 
-MaxClockFrequency: 420, 
+MaxClockFrequency: 600, 
 MaxParallelCore: 4, 
 Availability: 1
 
-DeviceID_0-1: 3065709080,
+DeviceID_0-1: 3065553432,
 DeviceName: Mali-T628, 
 Type: GPU, 
 Platform: ARM Platform, 
 Vendor: ARM, 
-MaxClockFrequency: 420, 
+MaxClockFrequency: 600, 
 MaxParallelCore: 2, 
 Availability: 1
 
-DeviceID_1-0: 5783240,
+DeviceID_1-0: 5017288,
 DeviceName: pthread-cortex-a7, 
 Type: CPU, 
 Platform: Portable Computing Language, 
@@ -63,7 +63,61 @@ clCreateProgramWithSource CL_SUCCESS
 clCreateProgramWithSource CL_SUCCESS
 clCreateProgramWithSource CL_SUCCESS
  CL_SUCCESS
-	taskToReadyB: pos_index: 0 curTime: 264 ArrivalTime: 0
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+	taskToReadyB: pos_index: 0 curTime: 238 ArrivalTime: 0
 	Dispatching from dispatch_from_queue_0-0: 1 1
 	InputBufferSize: 16384
 	InputBufferOffset: 0
