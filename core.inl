@@ -1182,8 +1182,8 @@ void *run_kernel(void *vargp){
     std::string filename = "./profile_statistics/trace_"+to_string(kl_info->task->traceID)+".stats";
     std::string microkernel_filename = "./profile_statistics/microkernel_for_trace_"+to_string(kl_info->task->traceID)+".stats";
     ofstream ofs, ofs_microkernel;
-    ofs.open(filename,std::ios_base::app);
-    ofs_microkernel.open(microkernel_filename,std::ios_base::app);
+    ofs.open(filename,std::ios_base::app|std::ios_base::out);
+    ofs_microkernel.open(microkernel_filename,std::ios_base::app|std::ios_base::out);
 
     for(int i = 0 ;i<PROFILE_ITERATIONS; i++)
     {
@@ -2126,7 +2126,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     // printf("before create buffer\n");
     //Creating buffers for device
     KernelInfo *kernel_info = kl_info.task->kernels[index];
-    printf("Configured kernel status: %d\n",kernel_info->configured[kl_info.platform_pos]);
+    PERSISTENCE_DEBUG printf("Configured kernel status: %d\n",kernel_info->configured[kl_info.platform_pos]);
     if (!kernel_info->configured[kl_info.platform_pos])
         cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset);
     // printf("after create buffer\n");
@@ -2134,21 +2134,23 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     
     //setting kernel arguments
     cl_set_kernel_args((KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.platform_pos,datasize);     
-    clSetUserEventStatus(ev, CL_COMPLETE); 
+    
 
 
     kl_info.kex.write_start_h=get_current_time();
+    PERSISTENCE_DEBUG printf("clEnqueueReadBuffer with datasize %d\n",datasize);
     kl_info.ke.write = cl_enqueue_write_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize, dataoffset, ev,kl_info.platform_pos);
     // status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->noInputBuffers ,&(kl_info.ke.write[0]) ,&barrier_ev_write );
     // kl_info.ke.barrier_write = barrier_ev_write;
+    clSetUserEventStatus(ev, CL_COMPLETE); 
     clFlush(cmd_q);
 
     kl_info.kex.nd_start_h=get_current_time();
-    printf("clEnqueueNDRangeKernel with datasize %d\n",datasize);
+    PERSISTENCE_DEBUG printf("clEnqueueNDRangeKernel with datasize %d\n",datasize);
     kl_info.ke.exec = cl_enqueue_nd_range_kernel(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.platform_pos, datasize,kl_info.ke.write.back());//kl_info.ke.write.back());
     
     clFlush(cmd_q);
-    printf("clEnqueueReadBuffer with datasize %d\n",datasize);
+    PERSISTENCE_DEBUG printf("clEnqueueReadBuffer with datasize %d\n",datasize);
     kl_info.kex.read_start_h=get_current_time();
     kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec,kl_info.platform_pos);
     
@@ -2408,6 +2410,7 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
     unsigned int datasize, buffer_offset, element_offset;
     cl_int status;
     int num_buffers = 0;
+
     if(ki.configured[dtype])
         for(int i =0;i<ki.inputBuffers.size();i++)
         {
@@ -2418,6 +2421,7 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
     {
         num_buffers = ki.noInputBuffers;
     }
+    PERSISTENCE_DEBUG printf("Number of events to be set for buffers: %d ",num_buffers);
     std::vector<cl_event> finish(num_buffers);
     cl_uint mem_size;
     void* host_mem;
@@ -2438,6 +2442,7 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
         int persistent = std::get<3>(ki.inputBuffers.at(i));
         if(!ki.configured[dtype]) // not run once
         {
+            PERSISTENCE_DEBUG printf("writeBuffer: kernel is deployed for the first time\n");
             if (dep != NULL && counter==0)
                 status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[counter]));     
             else if(dep != NULL && counter>0)
@@ -2446,6 +2451,7 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
         }
         else if(!persistent) // run once and buffer is not persistent i.e. image needs to be written
         {
+            PERSISTENCE_DEBUG printf("writeBuffer: Kernel has been deployed already. Setting only persistent buffers\n");
             if (dep != NULL && counter==0)
                 status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[counter]));     
             else if(dep != NULL && counter>0)
@@ -2527,7 +2533,7 @@ cl_event cl_enqueue_nd_range_kernel(KernelExecutionInfo *di,cl_command_queue cmd
         fprintf(fp,"cl_enqueue_nd_range_kernel: END: %llu \n",get_current_time());
         fflush(fp);
     }
-
+    PERSISTENCE_DEBUG printf("%d Enqueued kernel\n",__LINE__);
     return finish;
 }
 
@@ -2558,7 +2564,7 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
     {
         num_buffers = ki.noOutputBuffers;
     }
-    printf("Read Event for %d buffers\n",num_buffers);
+    PERSISTENCE_DEBUG printf("Read Event setup for %d buffers\n",num_buffers);
     std::vector<cl_event> finish(num_buffers);
     cl_int status;
     int counter = 0;
@@ -2574,6 +2580,7 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
         int persistent = std::get<3>(ki.inputBuffers.at(i));
         if(!ki.configured[dtype])
         { // not run once
+            PERSISTENCE_DEBUG printf("readBuffer: Kernel has not been deployed yet.\n");
             if (dep != NULL && i==0)
                 status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[i]);    
             else if(dep != NULL && i>0)
@@ -2582,6 +2589,7 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
         }
         else if(!persistent)
         {
+            PERSISTENCE_DEBUG printf("readBuffer: Kernel has  already been deployed once.\n");
             if (dep != NULL && i==0)
                 status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[counter]);    
             else if(dep != NULL && i>0)
@@ -3045,11 +3053,12 @@ void dump_profile_statistics(KernelLaunchInfo *kl,std::ofstream &ofs)
     std::string timing_information = "";
     KernelExecutionInfo kex = kl->kex;
     KernelEvents ke = kl->ke;
-    cout<<"KERNEL EVENTS : write size " <<ke.write.size() << "read size " <<ke.read.size()<<"\n";
+    cout<<"KERNEL EVENTS : write size " <<ke.write.size() << " read size " <<ke.read.size()<<"\n";
     timing_information += ke.dump_times();
     stringstream ss;
     ss <<"getimage_time:" << kex.get_image_end_time - kex.get_image_start_time << ";host_time:" << kex.rel_end_time-kex.rel_start_time <<"\n";
     timing_information +=ss.str();
+    PERSISTENCE_DEBUG cout<<timing_information;
     ofs << timing_information;
     ofs.close();    
 }

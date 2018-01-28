@@ -34,7 +34,7 @@
 #include <mutex>  
 #include <condition_variable>
 
-
+#define PERSISTENCE_DEBUG if(1)
 // OpenCL includes
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 // #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
