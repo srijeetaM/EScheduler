@@ -1,0 +1,62 @@
+
+DEVICE INFO:
+
+DeviceID_0-0: 3065524416,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 4, 
+Availability: 1
+
+DeviceID_0-1: 3065524760,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 2, 
+Availability: 1
+
+DeviceID_1-0: 5160648,
+DeviceName: pthread-cortex-a7, 
+Type: CPU, 
+Platform: Portable Computing Language, 
+Vendor: ARM, 
+MaxClockFrequency: 1500, 
+MaxParallelCore: 4, 
+Availability: 1
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 4096
+	InputBufferOffset: 0
+	InputBufferSize: 18432
+	InputBufferOffset: 0
+	InputBufferSize: 128
+	InputBufferOffset: 0
+	InputBufferSize: 524288
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 8192
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 2048
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 1024
+	OutputBufferOffset: 0

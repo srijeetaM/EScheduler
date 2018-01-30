@@ -21,15 +21,19 @@ if __name__ == '__main__':
     flag = 0 # 1 cpu or gpu 0
     fields = []
     rows = []
-    path = "tinfo_full/DAG_0"
+    path = "tinfo/DAG_"+str(job_id)
     trace_id_file_map = {}
     trace_id = 0
-    for file in os.listdir("tinfo/DAG_0"):
-        file_path = os.path.join("./tinfo/DAG_0", file)
+    for file in os.listdir(path):
+        file_path = os.path.join(path, file)
         start_node, fused_kernel = file[5:].split(":")
         for platform_id in [0,1]:
             curr_params = [job_id,start_node,fused_kernel,isDependent,platform_id,device_id,deadline,arrivaltime,safetytime,isTerminal,global_dagid,instanceid,frequency]
-            dump_file = "trace/profile_dispatch_history_"+str(trace_id)+".stats"
+            if job_id == 0:
+                benchmark = "dnn"
+            else:
+                benchmark = "cnn"
+            dump_file = "trace/profile_"+benchmark+"_history_"+str(trace_id)+".stats"
             # f= open("trace/profile_dispatch_history_0.stats","w+")
             
             params = str(job_id) + "," +str(start_node) + "," + str(fused_kernel) +  "," + str(isDependent)  + "," + str(platform_id) + "," + str(device_id) + "," + str(deadline) + "," + str(arrivaltime) + "," + str(safetytime) + "," + str(isTerminal) + "," + str(global_dagid) + "," + str(instanceid) + "," + str(frequency)

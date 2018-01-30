@@ -1,0 +1,6 @@
+KernelName=cnn_1_2_3_4_5_6
+KernelSource=/DAG_1/cnn_1_2_3_4_5_6.cl
+workDimension=1
+globalWorkSize=8192,1,1
+inputBuffers=float,16384,0,0,float,4608,2,1,float,32,3,1,float,1048576,7,1,float,16384,9,1
+outputBuffers=float,4096,1,1,float,8192,4,1,float,2048,5,1,float,2048,6,1,float,512,8,1,float,32,10,0

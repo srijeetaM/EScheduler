@@ -1,0 +1,229 @@
+
+DEVICE INFO:
+
+DeviceID_0-0: 3066413248,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 4, 
+Availability: 1
+
+DeviceID_0-1: 3066413592,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 2, 
+Availability: 1
+
+DeviceID_1-0: 5738184,
+DeviceName: pthread-cortex-a7, 
+Type: CPU, 
+Platform: Portable Computing Language, 
+Vendor: ARM, 
+MaxClockFrequency: 1500, 
+MaxParallelCore: 4, 
+Availability: 1
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 32768
+	OutputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 73728
+	InputBufferOffset: 0
+	InputBufferSize: 256
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+

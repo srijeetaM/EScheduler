@@ -1,0 +1,29 @@
+
+DEVICE INFO:
+
+DeviceID_0-0: 3066015936,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 4, 
+Availability: 1
+
+DeviceID_0-1: 3066016280,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 2, 
+Availability: 1
+
+DeviceID_1-0: 5447368,
+DeviceName: pthread-cortex-a7, 
+Type: CPU, 
+Platform: Portable Computing Language, 
+Vendor: ARM, 
+MaxClockFrequency: 1500, 
+MaxParallelCore: 4, 
+Availability: 1

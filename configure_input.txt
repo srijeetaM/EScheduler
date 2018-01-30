@@ -26,3 +26,4 @@ isProfileMode=0
 monitorTemp=0
 controlerTemp=0
 generatePlot=0
+EVENTS_ENABLE=0
