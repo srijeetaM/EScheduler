@@ -1,0 +1,12 @@
+
+ssh -X odroid@10.5.20.217
+cd Project/Parantap
+
+sudo su
+
+taskset -c 3-7 ./scheduler trace/dispatch_history_0.stats
+
+
+
+job_id(0 if DNN, 1 if CNN),node_id,fused_variant(same as nodeid),isDependent(-1),paltform_id(GPU-0, CPU-1),device_id(CPU-0, GPU-0/1),deadline(999.999),arrivaltime(0.0),safetytime(999.999),isTerminal(1),global dagid(same as jobid),instanceid(0),frequncy(varry)
+0,0,0,-1,1,0,999.0,0.0,999.0,1,0,0,-1
