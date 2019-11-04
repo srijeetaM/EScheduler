@@ -2,7 +2,7 @@
 #define NumOfPlatforms 2
 using namespace std;
 unsigned long long int write_buffers_begin;
-
+//Global data structures
 FILE *fp,*t_result,*tmp_result,*m_result,*r_result;
 KernelLaunchInfo* micro_kernel_klinfo;
 std::map<int,JobInfo*> jobMap;
