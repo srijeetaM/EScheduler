@@ -2391,9 +2391,7 @@ int test_and_set(int *lock,int testval, int newval){
 void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_command_exec_status, void *user_data)
 {   
     
-    unsigned long long int end=get_current_time();
-   
-
+    unsigned long long int end=get_current_time(); 
 
     // struct timeval end_read;
     // gettimeofday(&end_read,NULL);       
@@ -2425,13 +2423,9 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
             //task name, size, paltform, device,freq, ex time
             fprintf(t_result,"%s_%u %d-%d %u %llu ",kl->task->taskID.c_str(),kl->size,kl->platform_pos,kl->device_pos,kl->frequency,timing);
             fflush(t_result);
-        }
-        
+        }        
         // fclose (t_result);
-        // printf("%s : %llu \n",kl->task->taskID.c_str(),timing);
-
-           
-        
+        // printf("%s : %llu \n",kl->task->taskID.c_str(),timing);  
     }     
 
     //std::thread::id tid = std::this_thread::get_id();
@@ -2454,6 +2448,19 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     release_kernel_events(kl->ke);
     release_buff_Kevent_time=get_current_time()-release_buff_Kevent_time;
 
+
+
+    unsigned long long int ncb_all_calculations=get_current_time();
+    unsigned long long int freqChange_time=0;
+    unsigned long long int node_mark_time=0;
+    unsigned long long int terminalNodeCal_time=0;
+    unsigned long long int successorNodeTransfer_time=0;
+    unsigned long long int releaseHostArray_time=0;
+    unsigned long long int AddReadyBuffer_time=0;
+    unsigned long long int partitioning_time=0;
+    unsigned long long int safeModeForRL_time=0;
+    unsigned long long int mode_change_time=0;
+
     unsigned long long int ncb_buffer;
     if(kl->platform_pos==1)
         ncb_buffer=notify_cb_buffer_c;
@@ -2462,23 +2469,22 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     unsigned long long int local_d=kl->task->deadline;//+ncb_buffer+time_buffer+(unsigned long long int)(time_factor*kl->task->exTime);
     // printf("local_d-%d: %llu ncb_buffer: %llu deadline:%llu \n",kl->task->traceID,local_d,ncb_buffer,kl->task->deadline)  ;  
 
-    unsigned long long int ncb_calculations=get_current_time();
-
+    
     if(kl->task->traceID!=-1)
-    {        
+    {   
+        freqChange_time=get_current_time();  
         if(kl->priority==1)
-        {    safe_duration+=get_current_time()-DAGtimeMatrix[kl->task->dagInfo->jobID][kl->task->dagInfo->instanceID]->startTime;
+        {   safe_duration+=get_current_time()-DAGtimeMatrix[kl->task->dagInfo->jobID][kl->task->dagInfo->instanceID]->startTime;
             printf("safe_duration: %llu\n",safe_duration);
         }
         unsigned int min_freq=deviceSpec[kl->platform_pos][kl->device_pos]->lowFrequencyBound;
         change_frequency(min_freq,  kl->platform_pos,  kl->device_pos);
+        freqChange_time = get_current_time()-freqChange_time;
         // printf("freq: %u \n",min_freq);
         //printf("\nKERNEL %d:%s  OFFSET-SIZE %u-%u \tDEVICE %d-%d FREQUENCY %uHZ TIME %llu ms. ",,,,kl->platform_pos,kl->device_pos,kl->frequency,timing);  
         //outputbuffer+="KERNEL_F: "+std::to_string(kl->task->traceID)+kl->task->taskID+" OFFSET-SIZE: "+std::to_string(kl->offset)+"-"+std::to_string(kl->size)+" Device: "+std::to_string(kl->device_index)+ " extime: " + std::to_string(timing)+ "curtime: "+std::to_string(get_current_time())+"\n";  
         // print_launch_info(*kl);
         
-        //unsigned int total_sz = kl->task->kernels[kl->kernel_index]->globalWorkSize[0]*kl->task->kernels[kl->kernel_index]->globalWorkSize[1]*kl->task->kernels[kl->kernel_index]->globalWorkSize[2];
-        // printf("total_sz: %u\n",kl->task->task_size);
         unsigned int total_sz =kl->task->task_size;
         // printf("offset: %u size: %u total_sz: %u task size: %u\n",kl->offset,kl->size,kl->offset+kl->size,total_sz);
         
@@ -2489,20 +2495,23 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
             kl->size=0;               
             
             // printf("kl->task->nodes.size(): %u\n",kl->task->nodes.size());               
-
+            node_mark_time=get_current_time();
             for(int n=0;n<kl->task->nodes.size();n++)
             {
                 nodes_matrix[kl->task->dagInfo->globalDAGID][kl->task->nodes[n]]=1;
                 // printf("nodes marked: nodes_matrix[%d][%d] = %d\n",kl->task->dagInfo->globalDAGID,kl->task->nodes[n],nodes_matrix[kl->task->dagInfo->globalDAGID][kl->task->nodes[n]]); 
             }  
             // printf("nodes marked\n"); 
+            node_mark_time=get_current_time()-node_mark_time;
+
             int job =kl->task->dagInfo->jobID;
             int instance=kl->task->dagInfo->instanceID;
             int global_dagid=kl->task->dagInfo->globalDAGID;
             // printf("job %d instance %d global_dagid %d",job,instance,global_dagid);
+            
             if(kl->task->isTerminal==1)
             {
-                
+                terminalNodeCal_time=get_current_time();
                 // printf("j-i: %d-%d \n",job,instance);
                 DAGtimeMatrix[job][instance]->writeStart=kl->kex.write_start ;
                 DAGtimeMatrix[job][instance]->ndStart=kl->kex.nd_start ;
@@ -2524,12 +2533,14 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
                             DAGtimeMatrix[job][i]->klinfo->priority=1;
                     }    
                 }
+                terminalNodeCal_time=get_current_time()-terminalNodeCal_time;
             }   
+            
 
-            //populate input buffer for successor nodes 
+            //populate input buffer for successor nodes             
             else
             {
-                
+                successorNodeTransfer_time=get_current_time();
                 int of_sz=kl->task->kernels[0]->data_outflow.size();  
                 // printf("of_sz %d\n",of_sz);
                 for(int s=0;s<of_sz;s++)
@@ -2564,17 +2575,24 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
                     }
                 }
                 // printf("Done1\n");
-            }
+                successorNodeTransfer_time=get_current_time()-successorNodeTransfer_time;
+            }                       
+
+            releaseHostArray_time=get_current_time();
             // printf("release_host_arrays b4\n");
             release_host_arrays(kl->task->data);
             // printf("release_host_arrays done\n");
+            releaseHostArray_time=get_current_time()-releaseHostArray_time;
+
+            AddReadyBuffer_time=get_current_time();
             childrenToReadyBuffer(*kl)  ;  
             // printf("childrenToReadyBuffer\n");
-            
+            AddReadyBuffer_time=get_current_time()-AddReadyBuffer_time;            
 
         }
         else 
-        {        
+        {   
+            partitioning_time=get_current_time();  
             /*
             if(kl->offset==0)
                 kl->task->kernels[0]->chunkSizeTiming=timing;
@@ -2616,11 +2634,14 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
             if(kl->offset+kl->size > total_sz)
                 kl->size=total_sz - kl->offset;
             // printf("notifycallback_else_chunking\n");
+
+            partitioning_time=get_current_time()-partitioning_time;
         }  
 
-        //For safe RL, increase frequency or priority of successor nodes of a DAG
-        
 
+        //For safe RL, increase frequency or priority of successor nodes of a DAG    
+
+        safeModeForRL_time=get_current_time();  
         // unsigned long long int local_rel_d=kl->task->deadline+ncb_buffer+time_buffer+(unsigned long long int)(time_factor*kl->task->exTime);
         // printf("local_rel_d: %llu\n",local_rel_d)  ;      
         if(kl->task->isTerminal!=1 && kl->kex.rel_end_time>local_d)
@@ -2678,10 +2699,13 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
                 }
             //}
         }
-    
-        // printf("control_mode: %d\n",kl->control_mode);
+        safeModeForRL_time=get_current_time()-safeModeForRL_time;
 
         //change mode frequency
+
+        mode_change_time=get_current_time();
+        // printf("control_mode: %d\n",kl->control_mode);
+        
         if(kl->control_mode==1)    
         {
             local_controller(kl);        
@@ -2695,16 +2719,12 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
             fprintf(fp,"\tKERNEL %s EXECUTION FINISHED IN DEVICE %d-%d with %uHz frequency size %u offset %u in %llu ms. time.\n",kl->task->taskID.c_str(),kl->platform_pos,kl->device_pos,kl->frequency,kl->size,kl->offset,timing);
             fflush(fp);
         
-
+        mode_change_time = get_current_time()-mode_change_time;
     }
-    
-    std::string name; 
-    if(kl->task->traceID!=-1)
-        name=kl->task->taskID.c_str();
-    else
-        name="micro_kernel";
 
-    ncb_calculations=get_current_time()-ncb_calculations;
+    ncb_all_calculations=get_current_time()-ncb_all_calculations;
+
+    //Set lock and print
 
     unsigned long long int locks_print_time=get_current_time();
     
@@ -2732,34 +2752,45 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     else
         notify_cb_buffer_g+=get_current_time()-end;
 
+    std::string name; 
+    if(kl->task->traceID!=-1)
+        name=kl->task->taskID.c_str();
+    else
+        name="micro_kernel";   
+    printf("******Kernel Stat: %s %u %d-%d %u %llu %llu %llu %llu *******\n",name.c_str(),kl->size,kl->platform_pos,kl->device_pos,kl->frequency,timing,kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
+    
+    kl->kex.notify_callback_rel_end_time=get_current_time();        
 
-    kl->kex.notify_callback_rel_end_time=get_current_time();
-    locks_print_time=get_current_time()-locks_print_time;
     if(kl->task->traceID!=-1 )
     {
         if(LOG_PROFILE==1)
         {
+            dump_profile_event_timing(kl->kex);
+
             //dispatch start time, notify start time, notify finish time
             fprintf(t_result,"%llu %llu %llu \n",kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
             fflush(t_result);
-            fclose (t_result);
+            fclose (t_result);            
+
+            locks_print_time=get_current_time()-locks_print_time;
+            printf("------------------------------------------------------------\n");
+            printf("Execution time: %llu \n",kl->kex.notify_callback_rel_start_time-write_buffers_begin);
+            printf("Notify_callback time start end: %llu - %llu: %llu\n",kl->kex.notify_callback_rel_end_time-write_buffers_begin,end-write_buffers_begin,(kl->kex.notify_callback_rel_end_time-write_buffers_begin)-(end-write_buffers_begin));
+            printf("Notify_callback time analysis release-calculation-lockprint: \n %llu - %llu - %llu\n",release_buff_Kevent_time,ncb_all_calculations,locks_print_time);
+            printf("freqChange_time: %llu\n",freqChange_time);
+            printf("node_mark_time : %llu\n",node_mark_time);
+            printf("terminalNodeCal_time : %llu\n",terminalNodeCal_time);
+            printf("successorNodeTransfer_time : %llu\n",successorNodeTransfer_time);
+            printf("releaseHostArray_time : %llu\n",releaseHostArray_time);
+            printf("AddReadyBuffer_time: %llu\n",AddReadyBuffer_time); 
+            printf("partitioning_time : %llu\n",partitioning_time);
+            printf("safeModeForRL_time : %llu\n",safeModeForRL_time);
+            printf("mode_change_time: %llu\n",mode_change_time);
+            printf("------------------------------------------------------------\n");
         }        
     }
-    printf("\tKernel Stat: %s %u %d-%d %u %llu %llu %llu %llu \n",name.c_str(),kl->size,kl->platform_pos,kl->device_pos,kl->frequency,timing,kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
     printf("notify_callback_update_release %d: END: %llu \n",kl->task->traceID,get_current_time());  
-
-    // printf("****************notify_callback_end-Write_start: %llu *************************\n",kl->kex.notify_callback_rel_end_time-write_buffers_begin);
-
     printf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-
-    if(kl->task->traceID!=-1 )
-    {   
-        dump_profile_event_timing(kl->kex);
-
-        printf("Execution time: %llu \n",kl->kex.notify_callback_rel_start_time-write_buffers_begin);
-        printf("Notify_callback time start end: %llu - %llu: %llu\n",kl->kex.notify_callback_rel_end_time-write_buffers_begin,end-write_buffers_begin,(kl->kex.notify_callback_rel_end_time-write_buffers_begin)-(end-write_buffers_begin));
-        printf("Notify_callback time analysis release-calculation-lockprint: %llu - %llu - %llu\n",release_buff_Kevent_time,ncb_calculations,locks_print_time);
-    }
 
 }
 
