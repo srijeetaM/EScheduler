@@ -1,10 +1,9 @@
+git checkout srijeeta
 git branch
-git status
 git add .
 git status
-git commit -m "Comment added"
+git commit -m "*** added"
 git push origin srijeeta
 git checkout master
 git branch
 git pull
-history > git.txt
