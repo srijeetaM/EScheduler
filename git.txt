@@ -6,4 +6,4 @@ git commit -m "*** added"
 git push origin srijeeta
 git checkout master
 git branch
-git pull
+git pull origin <branch>
