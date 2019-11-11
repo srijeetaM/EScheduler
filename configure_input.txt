@@ -26,3 +26,4 @@ isProfileMode=0
 monitorTemp=1
 controlerTemp=0
 generatePlot=1
+RACE_TO_IDLE=0
