@@ -92,6 +92,8 @@ void load_config(std::string filename)
                 controlerTemp=atoi(value.c_str());
             else if(name.compare("generatePlot")==0)
                 generatePlot=atoi(value.c_str());
+            else if(name.compare("RACE_TO_IDLE")==0)
+                raceToIdle=atoi(value.c_str());
             
         }        
     }
@@ -2478,8 +2480,13 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
         {   safe_duration+=get_current_time()-DAGtimeMatrix[kl->task->dagInfo->jobID][kl->task->dagInfo->instanceID]->startTime;
             printf("safe_duration: %llu\n",safe_duration);
         }
-        unsigned int min_freq=deviceSpec[kl->platform_pos][kl->device_pos]->lowFrequencyBound;
-        //change_frequency(min_freq,  kl->platform_pos,  kl->device_pos);
+        
+        if(raceToIdle)
+        {  
+          unsigned int min_freq=deviceSpec[kl->platform_pos][kl->device_pos]->lowFrequencyBound;
+          change_frequency(min_freq,  kl->platform_pos,  kl->device_pos);         
+        } 
+
         freqChange_time = get_current_time()-freqChange_time;
         // printf("freq: %u \n",min_freq);
         //printf("\nKERNEL %d:%s  OFFSET-SIZE %u-%u \tDEVICE %d-%d FREQUENCY %uHZ TIME %llu ms. ",,,,kl->platform_pos,kl->device_pos,kl->frequency,timing);  

@@ -75,7 +75,7 @@ int monitorTemp;
 int controlerTemp;
 int generatePlot;
 int numOfDAGs;
-
+int raceToIdle;
 int no_micro_kernel=0;
 int rblock=0;
 int nlock=0;
