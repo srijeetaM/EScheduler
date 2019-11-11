@@ -1,6 +1,0 @@
-KernelName=cnn_8_9
-KernelSource=/DAG_1/cnn_8_9.cl
-workDimension=1
-globalWorkSize=16,1,1
-inputBuffers=float,128,0,float,2048,1
-outputBuffers=float,16,2,float,16,3

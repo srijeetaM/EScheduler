@@ -1,0 +1,6 @@
+KernelName=dnn_0_1_2_3_4
+KernelSource=/DAG_0/dnn_0_1_2_3_4.cl
+workDimension=1
+globalWorkSize=4096,1,1
+inputBuffers=float,4096,0,float,16777216,1,float,4096,2,float,8388608,3,float,2048,4,float,2097152,5,float,1024,6,float,524288,7,float,512,8,float,8192,9,float,16,10
+outputBuffers=float,4096,11,float,2048,12,float,1024,13,float,512,14,float,16,15

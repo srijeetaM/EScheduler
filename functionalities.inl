@@ -1943,9 +1943,10 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     // 
     // print_launch_info(kl_info);    
     
+    
     if(kl_info.priority==0)
         change_frequency(kl_info.frequency,  kl_info.platform_pos,  kl_info.device_pos);
-    else if(kl_info.priority==1)
+    else if(SAFE && kl_info.priority==1)
     {   change_frequency(deviceSpec[kl_info.platform_pos][kl_info.device_pos]->highFrequencyBound, kl_info.platform_pos,  kl_info.device_pos);
         printf("\t+++SAFE MODE ON for d-%d i-%d +++\n",kl_info.task->dagInfo->jobID,kl_info.task->dagInfo->instanceID);
 
@@ -2479,9 +2480,13 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
         {   safe_duration+=get_current_time()-DAGtimeMatrix[kl->task->dagInfo->jobID][kl->task->dagInfo->instanceID]->startTime;
             printf("safe_duration: %llu\n",safe_duration);
         }
-        unsigned int min_freq=deviceSpec[kl->platform_pos][kl->device_pos]->lowFrequencyBound;
+        
         if(raceToIdle)
-            change_frequency(min_freq,  kl->platform_pos,  kl->device_pos);
+        {  
+          unsigned int min_freq=deviceSpec[kl->platform_pos][kl->device_pos]->lowFrequencyBound;
+          change_frequency(min_freq,  kl->platform_pos,  kl->device_pos);         
+        } 
+
         freqChange_time = get_current_time()-freqChange_time;
         // printf("freq: %u \n",min_freq);
         //printf("\nKERNEL %d:%s  OFFSET-SIZE %u-%u \tDEVICE %d-%d FREQUENCY %uHZ TIME %llu ms. ",,,,kl->platform_pos,kl->device_pos,kl->frequency,timing);  
@@ -4077,7 +4082,7 @@ void change_frequency(unsigned int frequency, int platform_pos, int device_pos)
             // tmp = strdup(line); 
             tmp = (char*)calloc(strlen(line) + 1,1 );
             strcpy(tmp, line);
-            printf("change_frequency tmp: %s",tmp);
+            // printf("change_frequency tmp: %s",tmp);
         }  
         fclose(fp);     
         char* tok;
