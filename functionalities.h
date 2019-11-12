@@ -177,6 +177,7 @@ typedef struct _kernelexecutioninfo{
     unsigned long long int  devStartTime;
     unsigned long long int  devEndTime;
     unsigned long long int  devTotalTime; 
+    unsigned long long int write_buffers_start;
     unsigned long long int  rel_start_time; //dispatch start Rtime 
     unsigned long long int  rel_end_time; //notify_callback start Rtime, read end Rtime 
     unsigned long long int  notify_callback_rel_start_time;
@@ -216,6 +217,8 @@ typedef struct _kernelexecutioninfo{
     unsigned long long int  read_start;
     unsigned long long int  read_end;
     unsigned long long int  read_time;
+
+    unsigned long long int frequency_change_time;
 
     
 
@@ -302,6 +305,7 @@ typedef struct _interval{
 
 unsigned long long int convert_to_relative_time( unsigned long long int t,unsigned long long int ref);
 void dump_profile_event_timing(KernelExecutionInfo kex);
+void dump_execution_time_statistics(KernelExecutionInfo kex);
 void create_micro_kernel(int platform);
 void strip_ext(char *fname);
 std::string getFileName(std::string filePath, bool withExtension, char seperator);

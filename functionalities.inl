@@ -761,6 +761,8 @@ int check_dependency(std::vector <int> deps,int dag)
 //parse trace input
 int parse_trace_input(int* index)
 {
+    
+    printf("Parsing trace %d\n", *index);
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"parse_trace_input: BEGIN \n");
 
@@ -2221,7 +2223,7 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
         fprintf(fp,"cl_enqueue_write_buffers: BEGIN: %llu \n",get_current_time());
 
     write_buffers_begin=get_current_time();
-
+    di->write_buffers_start= write_buffers_begin;
     // struct timeval start_write;
     // gettimeofday(&start_write,NULL); 
     // unsigned long long int start_write_time=(unsigned long long int )(start_write.tv_sec*1000000+start_write.tv_usec);
@@ -2483,6 +2485,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
         if(raceToIdle)
             change_frequency(min_freq,  kl->platform_pos,  kl->device_pos);
         freqChange_time = get_current_time()-freqChange_time;
+        kl->kex.frequency_change_time = freqChange_time;
         // printf("freq: %u \n",min_freq);
         //printf("\nKERNEL %d:%s  OFFSET-SIZE %u-%u \tDEVICE %d-%d FREQUENCY %uHZ TIME %llu ms. ",,,,kl->platform_pos,kl->device_pos,kl->frequency,timing);  
         //outputbuffer+="KERNEL_F: "+std::to_string(kl->task->traceID)+kl->task->taskID+" OFFSET-SIZE: "+std::to_string(kl->offset)+"-"+std::to_string(kl->size)+" Device: "+std::to_string(kl->device_index)+ " extime: " + std::to_string(timing)+ "curtime: "+std::to_string(get_current_time())+"\n";  
@@ -2768,7 +2771,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     {
         if(LOG_PROFILE==1)
         {
-            dump_profile_event_timing(kl->kex);
+            //dump_profile_event_timing(kl->kex);
 
             //dispatch start time, notify start time, notify finish time
             fprintf(t_result,"%llu %llu %llu \n",kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
@@ -2792,11 +2795,30 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
             printf("------------------------------------------------------------\n");
         }        
     }
-    printf("notify_callback_update_release %d: END: %llu \n",kl->task->traceID,get_current_time());  
+    printf("notify_callback_update_release for task %d: END: %llu \n",kl->task->traceID,get_current_time());  
     printf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
 }
 
+
+void dump_execution_time_statistics(KernelExecutionInfo kex)
+{
+
+    dump_profile_event_timing(kex);
+    
+    unsigned long long int end = kex.rel_end_time;
+    unsigned long long int write_buffers_begin = kex.write_buffers_start;
+    printf("------------------------------------------------------------\n");
+    
+    printf("Execution time from host perspective: %llu \n",kex.notify_callback_rel_start_time-write_buffers_begin);
+    printf("Notify_callback time start end: %llu - %llu: %llu\n",kex.notify_callback_rel_end_time-write_buffers_begin,end-write_buffers_begin,(kex.notify_callback_rel_end_time-write_buffers_begin)-(end-write_buffers_begin));
+    // printf("Notify_callback time analysis release-calculation-lockprint: \n %llu - %llu - %llu\n",release_buff_Kevent_time,ncb_all_calculations,locks_print_time);
+    printf("freqChange_time: %llu\n",kex.frequency_change_time);
+   
+    printf("------------------------------------------------------------\n");
+
+
+}
 unsigned long long int convert_to_relative_time( unsigned long long int t,unsigned long long int ref)
 {
     // return (t/1000-START_TIME);
@@ -2804,35 +2826,35 @@ unsigned long long int convert_to_relative_time( unsigned long long int t,unsign
 }
 void dump_profile_event_timing(KernelExecutionInfo kex)
 {
-    printf("Dispatch_start: %llu\n",kex.rel_start_time);
-    printf("N_callback_start: %llu\n",kex.notify_callback_rel_start_time);
-    printf("N_callback_end: %llu\n",kex.notify_callback_rel_end_time);
-    printf("Read_end-Dispatch_start: %llu\n",kex.read_end-kex.rel_start_time);
-    printf("N_callback_end-Dispatch_start: %llu\n\n",kex.notify_callback_rel_end_time-kex.rel_start_time);
+    // printf("Dispatch_start: %llu\n",kex.rel_start_time);
+    // printf("N_callback_start: %llu\n",kex.notify_callback_rel_start_time);
+    // printf("N_callback_end: %llu\n",kex.notify_callback_rel_end_time);
+    // printf("Read_end-Dispatch_start: %llu\n",kex.read_end-kex.rel_start_time);
+    // printf("N_callback_end-Dispatch_start: %llu\n\n",kex.notify_callback_rel_end_time-kex.rel_start_time);
 
 
-    unsigned long long int ref=kex.writeQueued;
+    // unsigned long long int ref=kex.writeQueued;
 
-    //write
-    printf("write_start_h write_start_d nd_start_d write_time_t\n");
-    printf("%llu %llu %llu %llu \n",kex.write_start_h, kex.write_start , kex.write_end , kex.write_time);
-    printf("writeQueued_p writeSubmit_p writeStart_p writeEnd_p writeTime_p\n");
-    printf("%llu %llu %llu %llu %llu\n\n",convert_to_relative_time(kex.writeQueued,ref),convert_to_relative_time(kex.writeSubmit,ref),convert_to_relative_time(kex.writeStart,ref),convert_to_relative_time(kex.writeEnd,ref),convert_to_relative_time(kex.writeEnd,ref)-convert_to_relative_time(kex.writeStart,ref));
+    // //write
+    // printf("write_start_h write_start_d nd_start_d write_time_t\n");
+    // printf("%llu %llu %llu %llu \n",kex.write_start_h, kex.write_start , kex.write_end , kex.write_time);
+    // printf("writeQueued_p writeSubmit_p writeStart_p writeEnd_p writeTime_p\n");
+    // printf("%llu %llu %llu %llu %llu\n\n",convert_to_relative_time(kex.writeQueued,ref),convert_to_relative_time(kex.writeSubmit,ref),convert_to_relative_time(kex.writeStart,ref),convert_to_relative_time(kex.writeEnd,ref),convert_to_relative_time(kex.writeEnd,ref)-convert_to_relative_time(kex.writeStart,ref));
 
-    //nd_range
-    printf("nd_start_h nd_start_d read_start_d nd_time_t\n");
-    printf("%llu %llu %llu %llu \n",kex.nd_start_h, kex.nd_start , kex.nd_end , kex.nd_time);
-    printf("ndQueued_p ndSubmit_p ndStart_p ndEnd_p ndTime_p\n");
-    printf("%llu %llu %llu %llu %llu\n\n",convert_to_relative_time(kex.ndQueued,ref),convert_to_relative_time(kex.ndSubmit,ref),convert_to_relative_time(kex.ndStart,ref),convert_to_relative_time(kex.ndEnd,ref),convert_to_relative_time(kex.ndEnd,ref)-convert_to_relative_time(kex.ndStart,ref));
+    // //nd_range
+    // printf("nd_start_h nd_start_d read_start_d nd_time_t\n");
+    // printf("%llu %llu %llu %llu \n",kex.nd_start_h, kex.nd_start , kex.nd_end , kex.nd_time);
+    // printf("ndQueued_p ndSubmit_p ndStart_p ndEnd_p ndTime_p\n");
+    // printf("%llu %llu %llu %llu %llu\n\n",convert_to_relative_time(kex.ndQueued,ref),convert_to_relative_time(kex.ndSubmit,ref),convert_to_relative_time(kex.ndStart,ref),convert_to_relative_time(kex.ndEnd,ref),convert_to_relative_time(kex.ndEnd,ref)-convert_to_relative_time(kex.ndStart,ref));
 
 
-    //read
-    printf("read_start_h read_start_d ncb_start read_time_t\n");
-    printf("%llu %llu %llu %llu \n",kex.read_start_h, kex.read_start , kex.read_end , kex.read_time);
-    printf("readQueued_p readSubmit_p readStart_p readEnd_p readTime_p\n");
-    printf("%llu %llu %llu %llu %llu\n\n",convert_to_relative_time(kex.readQueued,ref),convert_to_relative_time(kex.readSubmit,ref),convert_to_relative_time(kex.readStart,ref),convert_to_relative_time(kex.readEnd,ref),convert_to_relative_time(kex.readEnd,ref)-convert_to_relative_time(kex.readStart,ref));
-
-    printf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+    // //read
+    // printf("read_start_h read_start_d ncb_start read_time_t\n");
+    // printf("%llu %llu %llu %llu \n",kex.read_start_h, kex.read_start , kex.read_end , kex.read_time);
+    // printf("readQueued_p readSubmit_p readStart_p readEnd_p readTime_p\n");
+    // printf("%llu %llu %llu %llu %llu\n\n",convert_to_relative_time(kex.readQueued,ref),convert_to_relative_time(kex.readSubmit,ref),convert_to_relative_time(kex.readStart,ref),convert_to_relative_time(kex.readEnd,ref),convert_to_relative_time(kex.readEnd,ref)-convert_to_relative_time(kex.readStart,ref));
+    printf("%OpenCL execution time (w+e+r) %llu\n",convert_to_relative_time(kex.readEnd,kex.writeQueued));
+    
 }
 void print_task_map()
 {
@@ -4321,7 +4343,7 @@ void strip_ext(char *fname)
 
 void host_synchronize(std::vector< std::vector<cl_command_queue>>& cmd_qs){
 
-        // printf("Host Synchronised inside: %d\n",nKernels);
+    printf("Synchronizing host with %d kernels\n",nKernels);
 
     while(nKernels>0)
         sleep(0.001);

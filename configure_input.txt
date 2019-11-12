@@ -1,5 +1,5 @@
 STR_LENGTH = 200
-NumOfJobs = 2
+NumOfJobs = 2 
 NumCoresPerDevice = 4
 NumofCPUs = 2
 NumOfSensors = 5
@@ -22,7 +22,7 @@ micro_kernel_device=1
 time_buffer=0
 FACTOR=1
 SAFE=0
-isProfileMode=1
-monitorTemp=1
+isProfileMode=0
+monitorTemp=0
 controlerTemp=0
-generatePlot=1
+generatePlot=0

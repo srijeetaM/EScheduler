@@ -116,7 +116,13 @@ int main(int argc, char const *argv[])
     // /*Release objects*/    
     // for(int i=0;i<task_queue.size();i++)
     //     release_host_arrays(task_queue[i].data); 
-
+    
+    printf("-------------------------Execution Statistics--------------------------------------");
+    for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr) { 
+      cout << "\tDAG ID " << itr->first.first << '\t' << "Kernel ID " << itr->first.second << '\n'; 
+      dump_execution_time_statistics(itr->second->kex);
+      printf("---------------------------------------------------------------------------------");
+    } 
     release_everything(all_ctxs, all_cmd_qs);
     printf("released_everything\n");
 
