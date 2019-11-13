@@ -117,11 +117,12 @@ int main(int argc, char const *argv[])
     // for(int i=0;i<task_queue.size();i++)
     //     release_host_arrays(task_queue[i].data); 
     
-    printf("-------------------------Execution Statistics--------------------------------------");
+    printf("-------------------------Execution Statistics--------------------------------------\n");
+    printf("dag \t\t task \t\t w_delay \t\t w \t\t e_delay \t\t e \t\t r_delay \t\t r \t\t k_ex \t\t h_ex \t\t h_over \t\t cb \t\t cb_over\n");
     for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr) { 
-      cout << "\tDAG ID " << itr->first.first << '\t' << "Kernel ID " << itr->first.second << '\n'; 
-      dump_execution_time_statistics(itr->second->kex);
-      printf("---------------------------------------------------------------------------------");
+      // cout << "\tDAG ID " << itr->first.first << '\t' << "Kernel ID " << itr->first.second << '\n'; 
+      dump_execution_time_statistics(itr->second->kex,itr->first.first,itr->first.second);
+    
     } 
     release_everything(all_ctxs, all_cmd_qs);
     printf("released_everything\n");

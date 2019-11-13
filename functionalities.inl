@@ -2801,21 +2801,50 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 }
 
 
-void dump_execution_time_statistics(KernelExecutionInfo kex)
+void dump_execution_time_statistics(KernelExecutionInfo kex,int dag_id, int task_id)
 {
 
-    dump_profile_event_timing(kex);
+    unsigned long long int w = convert_to_relative_time(kex.writeEnd,kex.writeStart);
+    unsigned long long int e = convert_to_relative_time(kex.ndEnd,kex.ndStart);
+    unsigned long long int r = convert_to_relative_time(kex.readEnd,kex.readStart);
     
-    unsigned long long int end = kex.rel_end_time;
-    unsigned long long int write_buffers_begin = kex.write_buffers_start;
-    printf("------------------------------------------------------------\n");
+    unsigned long long int w_queue_submit = convert_to_relative_time(kex.writeSubmit,kex.writeQueued);
+    unsigned long long int w_submit_start = convert_to_relative_time(kex.writeStart,kex.writeSubmit);
+
+    unsigned long long int e_queue_submit = convert_to_relative_time(kex.ndSubmit,kex.ndQueued);
+    unsigned long long int e_submit_start = convert_to_relative_time(kex.ndStart,kex.ndSubmit);
+
+    unsigned long long int r_queue_submit = convert_to_relative_time(kex.readSubmit,kex.readQueued);
+    unsigned long long int r_submit_start = convert_to_relative_time(kex.readStart,kex.readSubmit);
+
+    unsigned long long int w_delay = convert_to_relative_time(kex.writeStart,kex.writeQueued);
+    unsigned long long int e_delay = convert_to_relative_time(kex.ndStart,kex.writeQueued) - convert_to_relative_time(kex.writeEnd,kex.writeQueued);
+    unsigned long long int r_delay = convert_to_relative_time(kex.readStart,kex.writeQueued) - convert_to_relative_time(kex.ndEnd,kex.writeQueued);
     
-    printf("Execution time from host perspective: %llu \n",kex.notify_callback_rel_start_time-write_buffers_begin);
-    printf("Notify_callback time start end: %llu - %llu: %llu\n",kex.notify_callback_rel_end_time-write_buffers_begin,end-write_buffers_begin,(kex.notify_callback_rel_end_time-write_buffers_begin)-(end-write_buffers_begin));
-    // printf("Notify_callback time analysis release-calculation-lockprint: \n %llu - %llu - %llu\n",release_buff_Kevent_time,ncb_all_calculations,locks_print_time);
-    printf("freqChange_time: %llu\n",kex.frequency_change_time);
-   
-    printf("------------------------------------------------------------\n");
+    unsigned long long int host_side_time = kex.notify_callback_rel_start_time-kex.write_buffers_start;
+    double percent_host_overhead= (double)(host_side_time)/convert_to_relative_time(kex.readEnd,kex.writeQueued);
+    // printf("Write: queue-->submit delay: %llu, submit-->start delay %llu\n",w_queue_submit,w_submit_start);
+    // printf("Execute: queue-->submit delay: %llu, submit-->start delay %llu\n",e_queue_submit,e_submit_start);
+    // printf("Read: queue-->submit delay: %llu, submit-->start delay %llu\n",r_queue_submit,r_submit_start);
+    // printf("Write time %llu Execution Time %llu Read Time %llu ",w,e,r);
+    unsigned long long int callback_overhead = kex.notify_callback_rel_end_time-kex.rel_end_time;
+    double percent_callback_overhead = (double)callback_overhead/host_side_time;
+    printf("%d \t\t %d \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu  \t\t %lf \t\t %llu \t\t %lf\n",dag_id,task_id,w_delay,w,e_delay,e,r_delay,r,w+e+r,host_side_time,percent_host_overhead,callback_overhead,percent_callback_overhead);
+    
+    // dump_profile_event_timing(kex);
+    
+    // unsigned long long int end = kex.rel_end_time;
+    // unsigned long long int write_buffers_begin = kex.write_buffers_start;
+    // printf("------------------------------------------------------------\n");
+    // double percent_host_overhead= (double)(kex.notify_callback_rel_start_time-write_buffers_begin)/convert_to_relative_time(kex.readEnd,kex.writeQueued);
+    // printf("Execution time from host perspective: %llu \n",kex.notify_callback_rel_start_time-write_buffers_begin);
+    // printf("Notify_callback time start end: %llu - %llu: %llu\n",kex.notify_callback_rel_end_time-write_buffers_begin,end-write_buffers_begin,(kex.notify_callback_rel_end_time-write_buffers_begin)-(end-write_buffers_begin));
+    // printf("Host Overhead %lf\n",percent_host_overhead);
+    // double percent_callback_overhead = (double)((kex.notify_callback_rel_end_time-write_buffers_begin)-(end-write_buffers_begin)) / (kex.notify_callback_rel_end_time-write_buffers_begin);
+    // printf("Notify Callback Overhead %lf\n",percent_callback_overhead);    
+    // printf("freqChange_time: %llu\n",kex.frequency_change_time);
+    
+    // printf("------------------------------------------------------------\n");
 
 
 }
@@ -2853,7 +2882,27 @@ void dump_profile_event_timing(KernelExecutionInfo kex)
     // printf("%llu %llu %llu %llu \n",kex.read_start_h, kex.read_start , kex.read_end , kex.read_time);
     // printf("readQueued_p readSubmit_p readStart_p readEnd_p readTime_p\n");
     // printf("%llu %llu %llu %llu %llu\n\n",convert_to_relative_time(kex.readQueued,ref),convert_to_relative_time(kex.readSubmit,ref),convert_to_relative_time(kex.readStart,ref),convert_to_relative_time(kex.readEnd,ref),convert_to_relative_time(kex.readEnd,ref)-convert_to_relative_time(kex.readStart,ref));
-    printf("%OpenCL execution time (w+e+r) %llu\n",convert_to_relative_time(kex.readEnd,kex.writeQueued));
+    unsigned long long int w = convert_to_relative_time(kex.writeEnd,kex.writeStart);
+    unsigned long long int e = convert_to_relative_time(kex.ndEnd,kex.ndStart);
+    unsigned long long int r = convert_to_relative_time(kex.readEnd,kex.readStart);
+    
+    unsigned long long int w_queue_submit = convert_to_relative_time(kex.writeSubmit,kex.writeQueued);
+    unsigned long long int w_submit_start = convert_to_relative_time(kex.writeStart,kex.writeSubmit);
+
+    unsigned long long int e_queue_submit = convert_to_relative_time(kex.ndSubmit,kex.ndQueued);
+    unsigned long long int e_submit_start = convert_to_relative_time(kex.ndStart,kex.ndSubmit);
+
+    unsigned long long int r_queue_submit = convert_to_relative_time(kex.readSubmit,kex.readQueued);
+    unsigned long long int r_submit_start = convert_to_relative_time(kex.readStart,kex.readSubmit);
+
+
+    
+    printf("Write: queue-->submit delay: %llu, submit-->start delay %llu\n",w_queue_submit,w_submit_start);
+    printf("Execute: queue-->submit delay: %llu, submit-->start delay %llu\n",e_queue_submit,e_submit_start);
+    printf("Read: queue-->submit delay: %llu, submit-->start delay %llu\n",r_queue_submit,r_submit_start);
+    printf("Write time %llu Execution Time %llu Read Time %llu ",w,e,r);
+
+    printf("%OpenCL execution time (w+e+r) %llu, Delay %llu\n",convert_to_relative_time(kex.readEnd,kex.writeQueued),convert_to_relative_time(kex.readEnd,kex.writeQueued)-(w+e+r));
     
 }
 void print_task_map()
