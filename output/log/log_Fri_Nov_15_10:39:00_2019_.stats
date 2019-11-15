@@ -1,0 +1,131 @@
+
+DEVICE INFO:
+
+DeviceID_0-0: 3066040512,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 4, 
+Availability: 1
+
+DeviceID_0-1: 3066040856,
+DeviceName: Mali-T628, 
+Type: GPU, 
+Platform: ARM Platform, 
+Vendor: ARM, 
+MaxClockFrequency: 420, 
+MaxParallelCore: 2, 
+Availability: 1
+
+DeviceID_1-0: 5033672,
+DeviceName: pthread-cortex-a7, 
+Type: CPU, 
+Platform: Portable Computing Language, 
+Vendor: ARM, 
+MaxClockFrequency: 1500, 
+MaxParallelCore: 4, 
+Availability: 1
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+clCreateProgramWithSource CL_SUCCESS
+ CL_SUCCESS
+	taskToReadyB: pos_index: 0 curTime: 326 ArrivalTime: 0
+	Dispatching from dispatch_from_queue_0-0: 1 1
+	InputBufferSize: 16384
+	InputBufferOffset: 0
+	InputBufferSize: 67108864
+	InputBufferOffset: 0
+	InputBufferSize: 16384
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 16384
+	OutputBufferOffset: 0
+release_host_arrays begin
+release_host_arrays end
+	childrenToReadyBuffer:Moving from waiting to ready queue_0-0: 0 
+	Dispatching from dispatch_from_queue_0-0: 1 1
+	InputBufferSize: 16384
+	InputBufferOffset: 0
+	InputBufferSize: 33554432
+	InputBufferOffset: 0
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 8192
+	OutputBufferOffset: 0
+release_host_arrays begin
+release_host_arrays end
+	childrenToReadyBuffer:Moving from waiting to ready queue_0-0: 0 
+	Dispatching from dispatch_from_queue_0-0: 1 1
+	InputBufferSize: 8192
+	InputBufferOffset: 0
+	InputBufferSize: 8388608
+	InputBufferOffset: 0
+	InputBufferSize: 4096
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 4096
+	OutputBufferOffset: 0
+release_host_arrays begin
+release_host_arrays end
+	childrenToReadyBuffer:Moving from waiting to ready queue_0-0: 0 
+	Dispatching from dispatch_from_queue_0-0: 1 1
+	InputBufferSize: 4096
+	InputBufferOffset: 0
+	InputBufferSize: 2097152
+	InputBufferOffset: 0
+	InputBufferSize: 2048
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 2048
+	OutputBufferOffset: 0
+release_host_arrays begin
+release_host_arrays end
+	childrenToReadyBuffer:Moving from waiting to ready queue_0-0: 0 
+	Dispatching from dispatch_from_queue_0-0: 1 1
+	InputBufferSize: 2048
+	InputBufferOffset: 0
+	InputBufferSize: 32768
+	InputBufferOffset: 0
+	InputBufferSize: 64
+	InputBufferOffset: 0
+	OutputBufferOffset: 0
+	OutputBufferSize: 64
+	OutputBufferOffset: 0
+release_host_arrays begin
+release_host_arrays end
+

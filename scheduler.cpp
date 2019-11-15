@@ -23,6 +23,7 @@ int main(int argc, char const *argv[])
     get_device_specification("gmm512_config.csv"); 
 
     /* Prit details of all devices*/
+
     print_all_device_info(all_devices);
     fflush(fp);     
 
@@ -44,9 +45,12 @@ int main(int argc, char const *argv[])
     int rc;
     pthread_attr_t attr;
     struct sched_param param;
+    pthread_t scheduler = pthread_self(); 
     rc = pthread_attr_init (&attr);
     rc = pthread_attr_getschedparam (&attr, &param);
-    (param.sched_priority)++;
+    
+    param.sched_priority = sched_get_priority_max(SCHED_RR);
+    pthread_setschedparam(scheduler,SCHED_RR,&param);
     rc = pthread_attr_setschedparam (&attr, &param);
 
     pthread_t  thread_controller;
@@ -116,14 +120,16 @@ int main(int argc, char const *argv[])
     // /*Release objects*/    
     // for(int i=0;i<task_queue.size();i++)
     //     release_host_arrays(task_queue[i].data); 
-    
+    std::ofstream ofs;
+    ofs.open(argv[2],std::ios_base::app);
     printf("-------------------------Execution Statistics--------------------------------------\n");
     printf("dag \t\t task \t\t w_delay \t\t w \t\t e_delay \t\t e \t\t r_delay \t\t r \t\t k_ex \t\t h_ex \t\t h_over \t\t cb \t\t cb_over\n");
     for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr) { 
       // cout << "\tDAG ID " << itr->first.first << '\t' << "Kernel ID " << itr->first.second << '\n'; 
-      dump_execution_time_statistics(itr->second->kex,itr->first.first,itr->first.second);
+      dump_execution_time_statistics(itr->second->kex,itr->first.first,itr->first.second,ofs);
     
-    } 
+    }
+    ofs.close(); 
     release_everything(all_ctxs, all_cmd_qs);
     printf("released_everything\n");
 

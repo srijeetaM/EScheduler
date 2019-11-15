@@ -36,6 +36,8 @@
 #include <streambuf>
 #include <mutex>  
 
+
+
 // OpenCL includes
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 // #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
@@ -140,6 +142,7 @@ typedef struct _kernelinfo
     std::vector <float> localSizeFactor;
     unsigned long long int chunkSizeTiming;
 } KernelInfo;
+
 
 typedef struct _taskinfo
 {    
@@ -305,7 +308,7 @@ typedef struct _interval{
 
 unsigned long long int convert_to_relative_time( unsigned long long int t,unsigned long long int ref);
 void dump_profile_event_timing(KernelExecutionInfo kex);
-void dump_execution_time_statistics(KernelExecutionInfo kex);
+void dump_execution_time_statistics(KernelExecutionInfo kex,int dag, int task,std::ofstream &ofs);
 void create_micro_kernel(int platform);
 void strip_ext(char *fname);
 std::string getFileName(std::string filePath, bool withExtension, char seperator);

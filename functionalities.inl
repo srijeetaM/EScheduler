@@ -1122,6 +1122,9 @@ void *run_scheduler(void *vargp){
     CPU_ZERO(&cpuset);
     CPU_SET(3, &cpuset);    
     int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
+    struct sched_param params;
+    params.sched_priority = sched_get_priority_max(SCHED_RR);
+    pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
     printf("\nrun_scheduler %u on core %d \n",pthread_self(),sched_getcpu());
 
     int taskcount=*((int *) vargp);
@@ -1978,15 +1981,15 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     kl_info.kex.nd_start_h=get_current_time();
     kl_info.ke.exec = cl_enqueue_nd_range_kernel(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.platform_pos, datasize,kl_info.ke.barrier_write);//kl_info.ke.write.back());
     
-    clFlush(cmd_q);
+   clFlush(cmd_q);
    
-   kl_info.kex.read_start_h=get_current_time();
+    kl_info.kex.read_start_h=get_current_time();
     kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec);
     
-    clFlush(cmd_q);
+   clFlush(cmd_q);
     status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->outputBuffers.size(),&(kl_info.ke.read[0]) ,&barrier_ev_read );    
     kl_info.ke.barrier_read = barrier_ev_read;
-    clFlush(cmd_q);
+   clFlush(cmd_q);
     //status = clSetEventCallback(kl_info.ke.read[kl_info.ke.read.size()-1], CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);
     
     status = clSetEventCallback(kl_info.ke.barrier_read, CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);    
@@ -2118,6 +2121,7 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
         buffer_offset=calculate_ip_buffer_offest(dataoffset,i,ki);        
 
         io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i]+ buffer_offset, &status));
+        // io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY |CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR, datasize, data[i]+ buffer_offset, &status));
         // printf("cl_create_buffers:Input Data Start: %u , data: %f  ,datasize: %u, buffer_offset:%u  \n",data[i]+buffer_offset,*((float*)(data[i]+buffer_offset)),datasize,buffer_offset);
         if(LOG_LEVEL==1)
             fprintf(fp,"\tcl_create_buffers:Input Data Start: %u , data: %f  ,datasize: %u, buffer_offset:%u  \n",data[i]+buffer_offset,*((float*)(data[i]+buffer_offset)),datasize,buffer_offset);
@@ -2134,6 +2138,7 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
         buffer_offset=calculate_op_buffer_offset(dataoffset,i,ki);   
 
         io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i + ki.inputBuffers.size()]+ buffer_offset, &status));
+        // io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR, datasize, data[i + ki.inputBuffers.size()]+ buffer_offset, &status));
 
         // printf("cl_create_buffers:Output Data Start: %u , data: %f  ,datasize: %u, buffer_offset:%u  \n",data[i+ ki.inputBuffers.size()]+buffer_offset,*((float*)(data[i+ ki.inputBuffers.size()]+buffer_offset)),datasize,buffer_offset);
         // if(LOG_LEVEL==1)
@@ -2801,7 +2806,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 }
 
 
-void dump_execution_time_statistics(KernelExecutionInfo kex,int dag_id, int task_id)
+void dump_execution_time_statistics(KernelExecutionInfo kex,int dag_id, int task_id, std::ofstream &ofs)
 {
 
     unsigned long long int w = convert_to_relative_time(kex.writeEnd,kex.writeStart);
@@ -2818,7 +2823,7 @@ void dump_execution_time_statistics(KernelExecutionInfo kex,int dag_id, int task
     unsigned long long int r_submit_start = convert_to_relative_time(kex.readStart,kex.readSubmit);
 
     unsigned long long int w_delay = convert_to_relative_time(kex.writeStart,kex.writeQueued);
-    unsigned long long int e_delay = convert_to_relative_time(kex.ndStart,kex.writeQueued) - convert_to_relative_time(kex.writeEnd,kex.writeQueued);
+    unsigned long long int e_delay = convert_to_relative_time(kex.ndStart,kex.writeEnd);// - convert_to_relative_time(kex.writeEnd,kex.writeQueued);
     unsigned long long int r_delay = convert_to_relative_time(kex.readStart,kex.writeQueued) - convert_to_relative_time(kex.ndEnd,kex.writeQueued);
     
     unsigned long long int host_side_time = kex.notify_callback_rel_start_time-kex.write_buffers_start;
@@ -2829,6 +2834,9 @@ void dump_execution_time_statistics(KernelExecutionInfo kex,int dag_id, int task
     // printf("Write time %llu Execution Time %llu Read Time %llu ",w,e,r);
     unsigned long long int callback_overhead = kex.notify_callback_rel_end_time-kex.rel_end_time;
     double percent_callback_overhead = (double)callback_overhead/host_side_time;
+    // printf("SUBMIT-->START for NDRange %llu\n",e_submit_start);
+    // std::ofstream ofs(filename,std::ofstream::out);
+    ofs << dag_id <<"\t\t"<<task_id<<"\t\t"<<w_delay<<"\t\t"<<w<<"\t\t"<<e_delay<<"\t\t"<<e<<"\t\t"<<r_delay<<"\t\t"<<r<<"\t\t"<<w+e+r<<"\t\t"<<host_side_time<<"\t\t"<<percent_host_overhead<<"\t\t"<<callback_overhead<<"\t\t"<<percent_callback_overhead<<"\n";
     printf("%d \t\t %d \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu  \t\t %lf \t\t %llu \t\t %lf\n",dag_id,task_id,w_delay,w,e_delay,e,r_delay,r,w+e+r,host_side_time,percent_host_overhead,callback_overhead,percent_callback_overhead);
     
     // dump_profile_event_timing(kex);
