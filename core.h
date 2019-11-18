@@ -264,7 +264,9 @@ typedef struct _kernelinfo
     std::string options;
     std::vector <float> localSizeFactor;
     unsigned long long int chunkSizeTiming;
-    int configured = 0;
+    std::map<int,int> configured;
+
+    
 
 } KernelInfo;
 
@@ -660,8 +662,8 @@ unsigned int calculate_op_buffer_offset(unsigned int dataoffset,int op_index,Ker
 
 void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset);
 void cl_set_kernel_args(KernelInfo& ki, std::vector<cl_mem>& io, int object,unsigned int datasize) ;
-std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep);
-std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data,unsigned int size,unsigned int dataoffset, cl_event dep);
+std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep, int dtype);
+std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data,unsigned int size,unsigned int dataoffset, cl_event dep, int dtype);
 cl_event cl_enqueue_nd_range_kernel(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, int object,unsigned int size, cl_event dep);
 void* get_global_pointer(std::string str, int index);
 void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_command_exec_status, void *user_data);

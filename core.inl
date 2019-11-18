@@ -259,7 +259,7 @@ int count_dag_from_file(const char* filename)
     FILE *file;
     file = fopen(filename, "r");
     char line[1024];
-
+ 
     if (!file) 
     {
         fprintf(stderr, "Can't open input file.: dag_history file\n");
@@ -1143,7 +1143,7 @@ void *run_scheduler(void *vargp){
         dispatch_from_queue();  
 
     }
-
+    
     // printf("taskcount: %d, no_micro_kernel: %d, nTasks: %d\n",taskcount,no_micro_kernel,nTasks);
 
     if(get_current_time()<hyper_period)
@@ -1483,7 +1483,8 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
     char line[1024];
     int length, i, is_buffer, gpu_index, cpu_index, index;
     char **list, **sublist;
-
+    kernel_info->configured[PLATFORM_CPU]=0;
+    kernel_info->configured[PLATFORM_GPU]=0;
     if (!kernel_info_file) 
     {
         fprintf(fp,"\tCan't open %s file.\n",info_file_name);
@@ -1979,17 +1980,20 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
 
     // printf("before create buffer\n");
     //Creating buffers for device
-    cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset);
+    KernelInfo kernel_info = *(kl_info.task->kernels[index]);
+   
+    if (!kernel_info.configured[kl_info.platform_pos])
+        cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset);
     // printf("after create buffer\n");
 
-
+    
     //setting kernel arguments
     cl_set_kernel_args((KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.platform_pos,datasize);     
     clSetUserEventStatus(ev, CL_COMPLETE); 
 
 
     kl_info.kex.write_start_h=get_current_time();
-    kl_info.ke.write = cl_enqueue_write_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize, dataoffset, ev);
+    kl_info.ke.write = cl_enqueue_write_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize, dataoffset, ev,kl_info.platform_pos);
     // status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->noInputBuffers ,&(kl_info.ke.write[0]) ,&barrier_ev_write );
     // kl_info.ke.barrier_write = barrier_ev_write;
     clFlush(cmd_q);
@@ -2000,7 +2004,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
    clFlush(cmd_q);
    
     kl_info.kex.read_start_h=get_current_time();
-    kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec);
+    kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec,kl_info.platform_pos);
     
    clFlush(cmd_q);
     // status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->outputBuffers.size(),&(kl_info.ke.read[0]) ,&barrier_ev_read );    
@@ -2029,6 +2033,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
         fflush(fp);
     }
     printf("dispatch %d: END: %llu\n",kl_info.task->traceID,get_current_time());
+    kernel_info.configured[kl_info.platform_pos];
     return barrier_ev_read;
 }
 
@@ -2131,6 +2136,7 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
     int i;
     unsigned int datasize, buffer_offset;
     cl_int status;
+    
     for (i = 0; i < ki.inputBuffers.size(); ++i)
     {
         datasize=calculate_ip_buffer_size(size,i,ki);
@@ -2238,7 +2244,7 @@ void cl_set_kernel_args(KernelInfo& ki, std::vector<cl_mem>& io, int object,unsi
     
 }
 
-std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep) {
+std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep, int dtype) {
 
     if (LOG_LEVEL>=1)
         fprintf(fp,"cl_enqueue_write_buffers: BEGIN: %llu \n",get_current_time());
@@ -2257,6 +2263,7 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
     std::vector<cl_event> finish(ki.noInputBuffers);
     cl_uint mem_size;
     void* host_mem;
+    int counter = 0;
     for (i = 0; i < ki.inputBuffers.size(); ++i)
     {
         datasize=calculate_ip_buffer_size(size,i,ki);
@@ -2270,11 +2277,23 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
         gettimeofday(&c_time,NULL);
         unsigned long long int current_time=(unsigned long long int )(c_time.tv_sec*1000000000+c_time.tv_usec*1000);  
         // printf("get_curtime_write_start: %llu \n\\\\*****************************************************\n",current_time);
-        if (dep != NULL && i==0)
-            status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[i]));     
-        else if(dep != NULL && i>0)
-            status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &(finish[i-1]), &(finish[i]));
- 
+        int persistent = std::get<3>(ki.inputBuffers.at(i));
+        if(!ki.configured[dtype]) // not run once
+        {
+            if (dep != NULL && counter==0)
+                status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[counter]));     
+            else if(dep != NULL && counter>0)
+                status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &(finish[counter-1]), &(finish[counter]));
+            counter++;
+        }
+        else if(!persistent) // run once and buffer is not persistent i.e. image needs to be written
+        {
+            if (dep != NULL && counter==0)
+                status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[counter]));     
+            else if(dep != NULL && counter>0)
+                status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &(finish[counter-1]), &(finish[counter]));
+            counter++;
+        }
         fprintf(fp,"\tInputBufferSize: %d\n",datasize);
         fprintf(fp,"\tInputBufferOffset: %d\n",buffer_offset);
         check(status, "Enqueing Write Buffers"); 
@@ -2355,7 +2374,7 @@ cl_event cl_enqueue_nd_range_kernel(KernelExecutionInfo *di,cl_command_queue cmd
 }
 
 
-std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep) {
+std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep, int dtype) {
 
     if (LOG_LEVEL>=1)
         fprintf(fp,"cl_enqueue_read_buffers: BEGIN: %llu \n",get_current_time());
@@ -2372,6 +2391,7 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
     unsigned int datasize, buffer_offset, element_offset;
     std::vector<cl_event> finish(ki.noOutputBuffers);
     cl_int status;
+    int counter = 0;
     for (i = 0; i < ki.outputBuffers.size(); ++i)
     {
         datasize=calculate_op_buffer_size(size,i,ki);
@@ -2381,10 +2401,23 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
         // fprintf(fp,"\tOutputBufferSize: %d\n",datasize);
 
         fprintf(fp,"\tOutputBufferOffset: %d\n",buffer_offset);             
-        if (dep != NULL && i==0)
-            status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[i]);    
-        else if(dep != NULL && i>0)
-            status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &finish[i-1], &finish[i]);
+        int persistent = std::get<3>(ki.inputBuffers.at(i));
+        if(!ki.configured[dtype])
+        { // not run once
+            if (dep != NULL && i==0)
+                status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[i]);    
+            else if(dep != NULL && i>0)
+                status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &finish[i-1], &finish[i]);
+            counter++;
+        }
+        else if(!persistent)
+        {
+            if (dep != NULL && i==0)
+                status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[counter]);    
+            else if(dep != NULL && i>0)
+                status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &finish[counter-1], &finish[counter]);
+            counter++;
+        }
         fprintf(fp,"\tOutputBufferSize: %d\n",datasize);
         fprintf(fp,"\tOutputBufferOffset: %d\n",buffer_offset);        
         // for(int d=0;d<size;d++)

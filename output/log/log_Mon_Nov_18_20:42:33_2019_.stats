@@ -1,25 +1,25 @@
 
 DEVICE INFO:
 
-DeviceID_0-0: 3065553088,
+DeviceID_0-0: 3065934016,
 DeviceName: Mali-T628, 
 Type: GPU, 
 Platform: ARM Platform, 
 Vendor: ARM, 
-MaxClockFrequency: 600, 
+MaxClockFrequency: 420, 
 MaxParallelCore: 4, 
 Availability: 1
 
-DeviceID_0-1: 3065553432,
+DeviceID_0-1: 3065934360,
 DeviceName: Mali-T628, 
 Type: GPU, 
 Platform: ARM Platform, 
 Vendor: ARM, 
-MaxClockFrequency: 600, 
+MaxClockFrequency: 420, 
 MaxParallelCore: 2, 
 Availability: 1
 
-DeviceID_1-0: 5017288,
+DeviceID_1-0: 4972232,
 DeviceName: pthread-cortex-a7, 
 Type: CPU, 
 Platform: Portable Computing Language, 
@@ -117,7 +117,7 @@ clCreateProgramWithSource CL_SUCCESS
 clCreateProgramWithSource CL_SUCCESS
 clCreateProgramWithSource CL_SUCCESS
  CL_SUCCESS
-	taskToReadyB: pos_index: 0 curTime: 238 ArrivalTime: 0
+	taskToReadyB: pos_index: 0 curTime: 229 ArrivalTime: 0
 	Dispatching from dispatch_from_queue_0-0: 1 1
 	InputBufferSize: 16384
 	InputBufferOffset: 0
