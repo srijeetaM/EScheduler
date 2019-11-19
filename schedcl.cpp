@@ -1,4 +1,4 @@
-#include "core.h"
+#include "core.inl"
 int main(int argc, char const *argv[])
 {	
 

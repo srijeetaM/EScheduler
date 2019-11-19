@@ -1,0 +1,586 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+main	run_kernel.cpp	/^int main(int argc, char const *argv[])$/;"	f
+main	schedcl.cpp	/^int main(int argc, char const *argv[])$/;"	f
+__FUNCTIONALITIES_H	functionalities.h	3;"	d
+CL_USE_DEPRECATED_OPENCL_1_2_APIS	functionalities.h	42;"	d
+STR_LENGTH	functionalities.h	/^int STR_LENGTH; $/;"	v
+NumOfJobs	functionalities.h	/^int NumOfJobs;$/;"	v
+NumCoresPerDevice	functionalities.h	/^int NumCoresPerDevice;$/;"	v
+NumofCPUs	functionalities.h	/^int NumofCPUs;$/;"	v
+NumOfSensors	functionalities.h	/^int NumOfSensors;$/;"	v
+NumOfTempBand	functionalities.h	/^int NumOfTempBand;$/;"	v
+PLATFORM_GPU	functionalities.h	/^int PLATFORM_GPU;$/;"	v
+PLATFORM_CPU	functionalities.h	/^int PLATFORM_CPU;$/;"	v
+G_BIG	functionalities.h	/^int G_BIG;$/;"	v
+G_LITTLE	functionalities.h	/^int G_LITTLE;$/;"	v
+C_BIG	functionalities.h	/^int C_BIG;$/;"	v
+NumNodes_0	functionalities.h	/^int NumNodes_0;$/;"	v
+NumNodes_1	functionalities.h	/^int NumNodes_1;$/;"	v
+TempInterval	functionalities.h	/^int TempInterval;$/;"	v
+POLE	functionalities.h	/^int POLE;$/;"	v
+MODE	functionalities.h	/^int MODE;$/;"	v
+numOfHyperperiod	functionalities.h	/^int numOfHyperperiod;$/;"	v
+LOG_LEVEL	functionalities.h	/^int LOG_LEVEL;$/;"	v
+LOG_SCHEDULER	functionalities.h	/^int LOG_SCHEDULER;$/;"	v
+LOG_PROFILE	functionalities.h	/^int LOG_PROFILE;$/;"	v
+micro_kernel_device	functionalities.h	/^int micro_kernel_device;$/;"	v
+time_buffer	functionalities.h	/^int time_buffer;$/;"	v
+FACTOR	functionalities.h	/^int FACTOR;$/;"	v
+SAFE	functionalities.h	/^int SAFE;$/;"	v
+isProfileMode	functionalities.h	/^int isProfileMode;$/;"	v
+monitorTemp	functionalities.h	/^int monitorTemp;$/;"	v
+controlerTemp	functionalities.h	/^int controlerTemp;$/;"	v
+generatePlot	functionalities.h	/^int generatePlot;$/;"	v
+numOfDAGs	functionalities.h	/^int numOfDAGs;$/;"	v
+raceToIdle	functionalities.h	/^int raceToIdle;$/;"	v
+no_micro_kernel	functionalities.h	/^int no_micro_kernel=0;$/;"	v
+rblock	functionalities.h	/^int rblock=0;$/;"	v
+nlock	functionalities.h	/^int nlock=0;$/;"	v
+devlock	functionalities.h	/^int devlock=0;$/;"	v
+nKernels	functionalities.h	/^int nKernels=0;$/;"	v
+nTasks	functionalities.h	/^int nTasks=0;$/;"	v
+SchedulerFinish	functionalities.h	/^int SchedulerFinish=0;$/;"	v
+stop_scheduler	functionalities.h	/^int stop_scheduler=0;$/;"	v
+safe_duration	functionalities.h	/^unsigned long long int safe_duration=0;$/;"	v
+notify_cb_buffer_c	functionalities.h	/^unsigned long long int notify_cb_buffer_c=0;$/;"	v
+notify_cb_buffer_g	functionalities.h	/^unsigned long long int notify_cb_buffer_g=0; $/;"	v
+START_TIME	functionalities.h	/^unsigned long long int START_TIME;$/;"	v
+hyper_period	functionalities.h	/^unsigned long long int hyper_period;$/;"	v
+mtx_rblock	functionalities.h	/^std::mutex mtx_rblock;$/;"	v
+mtx_nlock	functionalities.h	/^std::mutex mtx_nlock;$/;"	v
+mtx_devlock	functionalities.h	/^std::mutex mtx_devlock;$/;"	v
+outputbuffer	functionalities.h	/^std::string outputbuffer;$/;"	v
+_jobinfo	functionalities.h	/^typedef struct _jobinfo$/;"	s
+jobID	functionalities.h	/^    int jobID;$/;"	m	struct:_jobinfo
+numOfNodes	functionalities.h	/^    int numOfNodes;$/;"	m	struct:_jobinfo
+numOfEdges	functionalities.h	/^    int numOfEdges;$/;"	m	struct:_jobinfo
+dependency	functionalities.h	/^    std::vector <std::vector <int>> dependency;$/;"	m	struct:_jobinfo
+successors	functionalities.h	/^    std::vector <std::vector <int>> successors;$/;"	m	struct:_jobinfo
+JobInfo	functionalities.h	/^}JobInfo;$/;"	t	typeref:struct:_jobinfo
+_daginfo	functionalities.h	/^typedef struct _daginfo$/;"	s
+globalDAGID	functionalities.h	/^    int globalDAGID;$/;"	m	struct:_daginfo
+jobID	functionalities.h	/^    int jobID;$/;"	m	struct:_daginfo
+instanceID	functionalities.h	/^    int instanceID;$/;"	m	struct:_daginfo
+DAGInfo	functionalities.h	/^}DAGInfo;$/;"	t	typeref:struct:_daginfo
+_kernelinfo	functionalities.h	/^typedef struct _kernelinfo$/;"	s
+KernelName	functionalities.h	/^    std::string KernelName;$/;"	m	struct:_kernelinfo
+kernelSource	functionalities.h	/^    std::string kernelSource;$/;"	m	struct:_kernelinfo
+noInputBuffers	functionalities.h	/^    unsigned int noInputBuffers;$/;"	m	struct:_kernelinfo
+noOutputBuffers	functionalities.h	/^    unsigned int noOutputBuffers;$/;"	m	struct:_kernelinfo
+noIOBuffers	functionalities.h	/^    unsigned int noIOBuffers;$/;"	m	struct:_kernelinfo
+bufferInputID	functionalities.h	/^    std::vector <unsigned int> bufferInputID;$/;"	m	struct:_kernelinfo
+bufferOutputID	functionalities.h	/^    std::vector <unsigned int> bufferOutputID;  $/;"	m	struct:_kernelinfo
+kernelObject	functionalities.h	/^    cl_kernel kernelObject;$/;"	m	struct:_kernelinfo
+kernelObjects	functionalities.h	/^    std::vector<cl_kernel> kernelObjects;$/;"	m	struct:_kernelinfo
+workDimension	functionalities.h	/^    int workDimension;$/;"	m	struct:_kernelinfo
+globalWorkSize	functionalities.h	/^    size_t globalWorkSize[3];$/;"	m	struct:_kernelinfo
+localWorkSize	functionalities.h	/^    size_t localWorkSize[3];$/;"	m	struct:_kernelinfo
+inputBuffers	functionalities.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int> > inputBuffers;$/;"	m	struct:_kernelinfo
+outputBuffers	functionalities.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int> > outputBuffers;$/;"	m	struct:_kernelinfo
+ioBuffers	functionalities.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int> > ioBuffers;$/;"	m	struct:_kernelinfo
+varArguments	functionalities.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int> > varArguments;$/;"	m	struct:_kernelinfo
+localArguments	functionalities.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int> > localArguments;$/;"	m	struct:_kernelinfo
+nonPartition	functionalities.h	/^    std::vector < unsigned long long int> nonPartition;  $/;"	m	struct:_kernelinfo
+data_outflow	functionalities.h	/^    std::vector < std::tuple <unsigned int, unsigned int, unsigned int> >data_outflow;$/;"	m	struct:_kernelinfo
+options	functionalities.h	/^    std::string options;$/;"	m	struct:_kernelinfo
+localSizeFactor	functionalities.h	/^    std::vector <float> localSizeFactor;$/;"	m	struct:_kernelinfo
+chunkSizeTiming	functionalities.h	/^    unsigned long long int chunkSizeTiming;$/;"	m	struct:_kernelinfo
+KernelInfo	functionalities.h	/^} KernelInfo;$/;"	t	typeref:struct:_kernelinfo
+_taskinfo	functionalities.h	/^typedef struct _taskinfo$/;"	s
+taskID	functionalities.h	/^    std::string taskID;$/;"	m	struct:_taskinfo
+traceID	functionalities.h	/^    int traceID;        $/;"	m	struct:_taskinfo
+nodes	functionalities.h	/^    std::vector < int> nodes;$/;"	m	struct:_taskinfo
+dependency	functionalities.h	/^    std::vector <int> dependency;$/;"	m	struct:_taskinfo
+kernels	functionalities.h	/^    std::vector <KernelInfo *>kernels;$/;"	m	struct:_taskinfo
+dagInfo	functionalities.h	/^    DAGInfo * dagInfo;$/;"	m	struct:_taskinfo
+task_size	functionalities.h	/^    unsigned int task_size;$/;"	m	struct:_taskinfo
+exTime	functionalities.h	/^    float exTime;$/;"	m	struct:_taskinfo
+arrival	functionalities.h	/^    unsigned long long int arrival;$/;"	m	struct:_taskinfo
+deadline	functionalities.h	/^    unsigned long long int deadline;    $/;"	m	struct:_taskinfo
+basespeed	functionalities.h	/^    std::vector <float> basespeed;$/;"	m	struct:_taskinfo
+data	functionalities.h	/^    std::vector<void*>  data;$/;"	m	struct:_taskinfo
+isTerminal	functionalities.h	/^    int isTerminal;$/;"	m	struct:_taskinfo
+TaskInfo	functionalities.h	/^} TaskInfo;$/;"	t	typeref:struct:_taskinfo
+_kernel_events	functionalities.h	/^typedef struct _kernel_events$/;"	s
+write	functionalities.h	/^    std::vector<cl_event> write;$/;"	m	struct:_kernel_events
+barrier_write	functionalities.h	/^    cl_event barrier_write;$/;"	m	struct:_kernel_events
+exec	functionalities.h	/^    cl_event exec;$/;"	m	struct:_kernel_events
+read	functionalities.h	/^    std::vector<cl_event> read;$/;"	m	struct:_kernel_events
+barrier_read	functionalities.h	/^    cl_event barrier_read;$/;"	m	struct:_kernel_events
+is_profiled	functionalities.h	/^    int is_profiled;$/;"	m	struct:_kernel_events
+KernelEvents	functionalities.h	/^} KernelEvents;$/;"	t	typeref:struct:_kernel_events
+_kernelexecutioninfo	functionalities.h	/^typedef struct _kernelexecutioninfo{  $/;"	s
+devStartTime	functionalities.h	/^    unsigned long long int  devStartTime;$/;"	m	struct:_kernelexecutioninfo
+devEndTime	functionalities.h	/^    unsigned long long int  devEndTime;$/;"	m	struct:_kernelexecutioninfo
+devTotalTime	functionalities.h	/^    unsigned long long int  devTotalTime; $/;"	m	struct:_kernelexecutioninfo
+write_buffers_start	functionalities.h	/^    unsigned long long int write_buffers_start;$/;"	m	struct:_kernelexecutioninfo
+rel_start_time	functionalities.h	/^    unsigned long long int  rel_start_time; \/\/dispatch start Rtime $/;"	m	struct:_kernelexecutioninfo
+rel_end_time	functionalities.h	/^    unsigned long long int  rel_end_time; \/\/notify_callback start Rtime, read end Rtime $/;"	m	struct:_kernelexecutioninfo
+notify_callback_rel_start_time	functionalities.h	/^    unsigned long long int  notify_callback_rel_start_time;$/;"	m	struct:_kernelexecutioninfo
+notify_callback_rel_end_time	functionalities.h	/^    unsigned long long int  notify_callback_rel_end_time;$/;"	m	struct:_kernelexecutioninfo
+turnaroundTime	functionalities.h	/^    unsigned long long int  turnaroundTime; \/\/ diff bw rel_end_time and rel_start_time$/;"	m	struct:_kernelexecutioninfo
+dispatchTime	functionalities.h	/^    unsigned long long int  dispatchTime; \/\/ time difference between dispatch start and dispatch end$/;"	m	struct:_kernelexecutioninfo
+writeQueued	functionalities.h	/^    unsigned long long int  writeQueued;$/;"	m	struct:_kernelexecutioninfo
+writeSubmit	functionalities.h	/^    unsigned long long int  writeSubmit;$/;"	m	struct:_kernelexecutioninfo
+writeStart	functionalities.h	/^    unsigned long long int  writeStart;$/;"	m	struct:_kernelexecutioninfo
+writeEnd	functionalities.h	/^    unsigned long long int  writeEnd;$/;"	m	struct:_kernelexecutioninfo
+writeTime	functionalities.h	/^    unsigned long long int  writeTime;$/;"	m	struct:_kernelexecutioninfo
+ndQueued	functionalities.h	/^    unsigned long long int  ndQueued;$/;"	m	struct:_kernelexecutioninfo
+ndSubmit	functionalities.h	/^    unsigned long long int  ndSubmit;$/;"	m	struct:_kernelexecutioninfo
+ndStart	functionalities.h	/^    unsigned long long int  ndStart;$/;"	m	struct:_kernelexecutioninfo
+ndEnd	functionalities.h	/^    unsigned long long int  ndEnd;$/;"	m	struct:_kernelexecutioninfo
+ndTime	functionalities.h	/^    unsigned long long int  ndTime;$/;"	m	struct:_kernelexecutioninfo
+readQueued	functionalities.h	/^    unsigned long long int  readQueued; $/;"	m	struct:_kernelexecutioninfo
+readSubmit	functionalities.h	/^    unsigned long long int  readSubmit;   $/;"	m	struct:_kernelexecutioninfo
+readStart	functionalities.h	/^    unsigned long long int  readStart;$/;"	m	struct:_kernelexecutioninfo
+readEnd	functionalities.h	/^    unsigned long long int  readEnd;$/;"	m	struct:_kernelexecutioninfo
+readTime	functionalities.h	/^    unsigned long long int  readTime; $/;"	m	struct:_kernelexecutioninfo
+write_start_h	functionalities.h	/^    unsigned long long int  write_start_h;$/;"	m	struct:_kernelexecutioninfo
+write_start	functionalities.h	/^    unsigned long long int  write_start;$/;"	m	struct:_kernelexecutioninfo
+write_end	functionalities.h	/^    unsigned long long int  write_end;$/;"	m	struct:_kernelexecutioninfo
+write_time	functionalities.h	/^    unsigned long long int  write_time;$/;"	m	struct:_kernelexecutioninfo
+nd_start_h	functionalities.h	/^    unsigned long long int  nd_start_h;$/;"	m	struct:_kernelexecutioninfo
+nd_start	functionalities.h	/^    unsigned long long int  nd_start;$/;"	m	struct:_kernelexecutioninfo
+nd_end	functionalities.h	/^    unsigned long long int  nd_end;$/;"	m	struct:_kernelexecutioninfo
+nd_time	functionalities.h	/^    unsigned long long int  nd_time;$/;"	m	struct:_kernelexecutioninfo
+read_start_h	functionalities.h	/^    unsigned long long int  read_start_h;$/;"	m	struct:_kernelexecutioninfo
+read_start	functionalities.h	/^    unsigned long long int  read_start;$/;"	m	struct:_kernelexecutioninfo
+read_end	functionalities.h	/^    unsigned long long int  read_end;$/;"	m	struct:_kernelexecutioninfo
+read_time	functionalities.h	/^    unsigned long long int  read_time;$/;"	m	struct:_kernelexecutioninfo
+frequency_change_time	functionalities.h	/^    unsigned long long int frequency_change_time;$/;"	m	struct:_kernelexecutioninfo
+KernelExecutionInfo	functionalities.h	/^} KernelExecutionInfo;$/;"	t	typeref:struct:_kernelexecutioninfo
+_kernellaunchinfo	functionalities.h	/^typedef struct _kernellaunchinfo{$/;"	s
+task	functionalities.h	/^    TaskInfo *task;$/;"	m	struct:_kernellaunchinfo
+kernel_index	functionalities.h	/^    int kernel_index;$/;"	m	struct:_kernellaunchinfo
+ke	functionalities.h	/^    KernelEvents ke;$/;"	m	struct:_kernellaunchinfo
+kex	functionalities.h	/^    KernelExecutionInfo kex;$/;"	m	struct:_kernellaunchinfo
+io	functionalities.h	/^    std::vector<cl_mem> io;$/;"	m	struct:_kernellaunchinfo
+platform_pos	functionalities.h	/^    int platform_pos;$/;"	m	struct:_kernellaunchinfo
+device_pos	functionalities.h	/^    int device_pos;$/;"	m	struct:_kernellaunchinfo
+device_index	functionalities.h	/^    int device_index;$/;"	m	struct:_kernellaunchinfo
+not_done_count	functionalities.h	/^    unsigned int not_done_count;$/;"	m	struct:_kernellaunchinfo
+size	functionalities.h	/^    unsigned int size;$/;"	m	struct:_kernellaunchinfo
+offset	functionalities.h	/^    unsigned int offset;$/;"	m	struct:_kernellaunchinfo
+queued	functionalities.h	/^    int queued;  $/;"	m	struct:_kernellaunchinfo
+reset	functionalities.h	/^    int reset;  $/;"	m	struct:_kernellaunchinfo
+frequency	functionalities.h	/^    unsigned int frequency;$/;"	m	struct:_kernellaunchinfo
+control_mode	functionalities.h	/^    int control_mode;$/;"	m	struct:_kernellaunchinfo
+priority	functionalities.h	/^    int priority;$/;"	m	struct:_kernellaunchinfo
+start	functionalities.h	/^    unsigned long long int start;$/;"	m	struct:_kernellaunchinfo
+expected_speed	functionalities.h	/^    float expected_speed;$/;"	m	struct:_kernellaunchinfo
+last_speedup	functionalities.h	/^    float last_speedup;$/;"	m	struct:_kernellaunchinfo
+KernelLaunchInfo	functionalities.h	/^} KernelLaunchInfo;$/;"	t	typeref:struct:_kernellaunchinfo
+_DAGtime	functionalities.h	/^typedef struct _DAGtime$/;"	s
+klinfo	functionalities.h	/^    KernelLaunchInfo* klinfo;$/;"	m	struct:_DAGtime
+startTime	functionalities.h	/^    unsigned long long int startTime;$/;"	m	struct:_DAGtime
+finishTime	functionalities.h	/^    unsigned long long int finishTime;$/;"	m	struct:_DAGtime
+arrivalTime	functionalities.h	/^    unsigned long long int arrivalTime;$/;"	m	struct:_DAGtime
+writeStart	functionalities.h	/^    unsigned long long int writeStart;$/;"	m	struct:_DAGtime
+ndStart	functionalities.h	/^    unsigned long long int ndStart;$/;"	m	struct:_DAGtime
+readStart	functionalities.h	/^    unsigned long long int readStart;$/;"	m	struct:_DAGtime
+deadline	functionalities.h	/^    float deadline;$/;"	m	struct:_DAGtime
+turnaroundTime	functionalities.h	/^    float turnaroundTime;$/;"	m	struct:_DAGtime
+makespan	functionalities.h	/^    float makespan;$/;"	m	struct:_DAGtime
+lateness	functionalities.h	/^    float lateness;$/;"	m	struct:_DAGtime
+safe_mode	functionalities.h	/^    int safe_mode;$/;"	m	struct:_DAGtime
+deadlineViolated	functionalities.h	/^    int deadlineViolated;$/;"	m	struct:_DAGtime
+DAGTime	functionalities.h	/^}DAGTime;$/;"	t	typeref:struct:_DAGtime
+_devConfig	functionalities.h	/^typedef struct _devConfig{$/;"	s
+frequency	functionalities.h	/^    unsigned int frequency;$/;"	m	struct:_devConfig
+speedup	functionalities.h	/^    float speedup;$/;"	m	struct:_devConfig
+powerup	functionalities.h	/^    float powerup;$/;"	m	struct:_devConfig
+DeviceConfig	functionalities.h	/^} DeviceConfig;$/;"	t	typeref:struct:_devConfig
+_deviceSpecification	functionalities.h	/^typedef struct _deviceSpecification{$/;"	s
+device_config	functionalities.h	/^    std::vector<DeviceConfig*> device_config;    $/;"	m	struct:_deviceSpecification
+lowFrequencyBound	functionalities.h	/^    unsigned int lowFrequencyBound; \/\/= frequencies[0];$/;"	m	struct:_deviceSpecification
+highFrequencyBound	functionalities.h	/^    unsigned int highFrequencyBound;$/;"	m	struct:_deviceSpecification
+midFrequency	functionalities.h	/^    unsigned int midFrequency; \/\/= frequencies[frequencies.size() - 1]; $/;"	m	struct:_deviceSpecification
+DeviceSpecification	functionalities.h	/^} DeviceSpecification;$/;"	t	typeref:struct:_deviceSpecification
+_temperature	functionalities.h	/^typedef struct _temperature{$/;"	s
+sensors	functionalities.h	/^    std::vector<int> sensors;$/;"	m	struct:_temperature
+cpuB_0	functionalities.h	/^    int cpuB_0;$/;"	m	struct:_temperature
+cpuB_1	functionalities.h	/^    int cpuB_1;$/;"	m	struct:_temperature
+cpuB_2	functionalities.h	/^    int cpuB_2;$/;"	m	struct:_temperature
+cpuB_3	functionalities.h	/^    int cpuB_3;$/;"	m	struct:_temperature
+gpu_4	functionalities.h	/^    int gpu_4;$/;"	m	struct:_temperature
+Temperature	functionalities.h	/^} Temperature;$/;"	t	typeref:struct:_temperature
+_interval	functionalities.h	/^typedef struct _interval{$/;"	s
+start	functionalities.h	/^    unsigned long long int start;$/;"	m	struct:_interval
+end	functionalities.h	/^    unsigned long long int end;$/;"	m	struct:_interval
+intervalWidth	functionalities.h	/^    unsigned long long int intervalWidth;$/;"	m	struct:_interval
+Interval	functionalities.h	/^}Interval;$/;"	t	typeref:struct:_interval
+gint	functionalities.h	/^std::vector<int> gint;$/;"	v
+guint	functionalities.h	/^std::vector<uint> guint;$/;"	v
+gshort	functionalities.h	/^std::vector<short> gshort;$/;"	v
+gushort	functionalities.h	/^std::vector<ushort> gushort;$/;"	v
+glong	functionalities.h	/^std::vector<long> glong;$/;"	v
+gulong	functionalities.h	/^std::vector<ulong> gulong;$/;"	v
+gbool	functionalities.h	/^std::vector<bool> gbool;$/;"	v
+gfloat	functionalities.h	/^std::vector<float> gfloat;$/;"	v
+gdouble	functionalities.h	/^std::vector<double> gdouble;$/;"	v
+gchar	functionalities.h	/^std::vector<char> gchar;$/;"	v
+__FUNCTIONALITIES_H	core.h	3;"	d
+CL_USE_DEPRECATED_OPENCL_1_2_APIS	core.h	43;"	d
+STR_LENGTH	core.h	/^int STR_LENGTH; $/;"	v
+NumOfJobs	core.h	/^int NumOfJobs;$/;"	v
+NumCoresPerDevice	core.h	/^int NumCoresPerDevice;$/;"	v
+NumofCPUs	core.h	/^int NumofCPUs;$/;"	v
+NumOfSensors	core.h	/^int NumOfSensors;$/;"	v
+NumOfTempBand	core.h	/^int NumOfTempBand;$/;"	v
+PLATFORM_GPU	core.h	/^int PLATFORM_GPU;$/;"	v
+PLATFORM_CPU	core.h	/^int PLATFORM_CPU;$/;"	v
+G_BIG	core.h	/^int G_BIG;$/;"	v
+G_LITTLE	core.h	/^int G_LITTLE;$/;"	v
+C_BIG	core.h	/^int C_BIG;$/;"	v
+NumNodes_0	core.h	/^int NumNodes_0;$/;"	v
+NumNodes_1	core.h	/^int NumNodes_1;$/;"	v
+TempInterval	core.h	/^int TempInterval;$/;"	v
+POLE	core.h	/^int POLE;$/;"	v
+MODE	core.h	/^int MODE;$/;"	v
+numOfHyperperiod	core.h	/^int numOfHyperperiod;$/;"	v
+LOG_LEVEL	core.h	/^int LOG_LEVEL;$/;"	v
+LOG_SCHEDULER	core.h	/^int LOG_SCHEDULER;$/;"	v
+LOG_PROFILE	core.h	/^int LOG_PROFILE;$/;"	v
+micro_kernel_device	core.h	/^int micro_kernel_device;$/;"	v
+time_buffer	core.h	/^int time_buffer;$/;"	v
+FACTOR	core.h	/^int FACTOR;$/;"	v
+SAFE	core.h	/^int SAFE;$/;"	v
+isProfileMode	core.h	/^int isProfileMode;$/;"	v
+monitorTemp	core.h	/^int monitorTemp;$/;"	v
+controlerTemp	core.h	/^int controlerTemp;$/;"	v
+generatePlot	core.h	/^int generatePlot;$/;"	v
+numOfDAGs	core.h	/^int numOfDAGs;$/;"	v
+raceToIdle	core.h	/^int raceToIdle;$/;"	v
+no_micro_kernel	core.h	/^int no_micro_kernel=0;$/;"	v
+rblock	core.h	/^int rblock=0;$/;"	v
+nlock	core.h	/^int nlock=0;$/;"	v
+devlock	core.h	/^int devlock=0;$/;"	v
+nKernels	core.h	/^int nKernels=0;$/;"	v
+nTasks	core.h	/^int nTasks=0;$/;"	v
+SchedulerFinish	core.h	/^int SchedulerFinish=0;$/;"	v
+stop_scheduler	core.h	/^int stop_scheduler=0;$/;"	v
+safe_duration	core.h	/^unsigned long long int safe_duration=0;$/;"	v
+notify_cb_buffer_c	core.h	/^unsigned long long int notify_cb_buffer_c=0;$/;"	v
+notify_cb_buffer_g	core.h	/^unsigned long long int notify_cb_buffer_g=0; $/;"	v
+START_TIME	core.h	/^unsigned long long int START_TIME;$/;"	v
+hyper_period	core.h	/^unsigned long long int hyper_period;$/;"	v
+mtx_rblock	core.h	/^std::mutex mtx_rblock;$/;"	v
+mtx_nlock	core.h	/^std::mutex mtx_nlock;$/;"	v
+mtx_devlock	core.h	/^std::mutex mtx_devlock;$/;"	v
+outputbuffer	core.h	/^std::string outputbuffer;$/;"	v
+print_profile_event_status	core.h	/^void print_profile_event_status(cl_int status)$/;"	f
+check	core.h	/^void check(cl_int status, const char* str) {$/;"	f
+file_exists	core.h	/^inline bool file_exists(const std::string& name) $/;"	f
+write_file	core.h	/^int write_file(const char *name, const unsigned char *content, size_t size) $/;"	f
+read_file	core.h	/^int read_file(unsigned char **output, size_t *size, const char *name) $/;"	f
+write_binaries	core.h	/^cl_int write_binaries(std::string filename,cl_program program, unsigned num_devices,$/;"	f
+_jobinfo	core.h	/^typedef struct _jobinfo$/;"	s
+jobID	core.h	/^    int jobID;$/;"	m	struct:_jobinfo
+numOfNodes	core.h	/^    int numOfNodes;$/;"	m	struct:_jobinfo
+numOfEdges	core.h	/^    int numOfEdges;$/;"	m	struct:_jobinfo
+dependency	core.h	/^    std::vector <std::vector <int>> dependency;$/;"	m	struct:_jobinfo
+successors	core.h	/^    std::vector <std::vector <int>> successors;$/;"	m	struct:_jobinfo
+JobInfo	core.h	/^}JobInfo;$/;"	t	typeref:struct:_jobinfo
+_daginfo	core.h	/^typedef struct _daginfo$/;"	s
+globalDAGID	core.h	/^    int globalDAGID;$/;"	m	struct:_daginfo
+jobID	core.h	/^    int jobID;$/;"	m	struct:_daginfo
+instanceID	core.h	/^    int instanceID;$/;"	m	struct:_daginfo
+DAGInfo	core.h	/^}DAGInfo;$/;"	t	typeref:struct:_daginfo
+_kernelinfo	core.h	/^typedef struct _kernelinfo$/;"	s
+KernelName	core.h	/^    std::string KernelName;$/;"	m	struct:_kernelinfo
+kernelSource	core.h	/^    std::string kernelSource;$/;"	m	struct:_kernelinfo
+noInputBuffers	core.h	/^    unsigned int noInputBuffers;$/;"	m	struct:_kernelinfo
+noOutputBuffers	core.h	/^    unsigned int noOutputBuffers;$/;"	m	struct:_kernelinfo
+noIOBuffers	core.h	/^    unsigned int noIOBuffers;$/;"	m	struct:_kernelinfo
+bufferInputID	core.h	/^    std::vector <unsigned int> bufferInputID;$/;"	m	struct:_kernelinfo
+bufferOutputID	core.h	/^    std::vector <unsigned int> bufferOutputID;  $/;"	m	struct:_kernelinfo
+kernelObject	core.h	/^    cl_kernel kernelObject;$/;"	m	struct:_kernelinfo
+kernelObjects	core.h	/^    std::vector<cl_kernel> kernelObjects;$/;"	m	struct:_kernelinfo
+workDimension	core.h	/^    int workDimension;$/;"	m	struct:_kernelinfo
+globalWorkSize	core.h	/^    size_t globalWorkSize[3];$/;"	m	struct:_kernelinfo
+localWorkSize	core.h	/^    size_t localWorkSize[3];$/;"	m	struct:_kernelinfo
+inputBuffers	core.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int, unsigned int> > inputBuffers;$/;"	m	struct:_kernelinfo
+outputBuffers	core.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int, unsigned int> > outputBuffers;$/;"	m	struct:_kernelinfo
+ioBuffers	core.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int, unsigned int> > ioBuffers;$/;"	m	struct:_kernelinfo
+varArguments	core.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int> > varArguments;$/;"	m	struct:_kernelinfo
+localArguments	core.h	/^    std::vector < std::tuple <std::string, unsigned int, unsigned int> > localArguments;$/;"	m	struct:_kernelinfo
+nonPartition	core.h	/^    std::vector < unsigned long long int> nonPartition;  $/;"	m	struct:_kernelinfo
+data_outflow	core.h	/^    std::vector < std::tuple <unsigned int, unsigned int, unsigned int> >data_outflow;$/;"	m	struct:_kernelinfo
+options	core.h	/^    std::string options;$/;"	m	struct:_kernelinfo
+localSizeFactor	core.h	/^    std::vector <float> localSizeFactor;$/;"	m	struct:_kernelinfo
+chunkSizeTiming	core.h	/^    unsigned long long int chunkSizeTiming;$/;"	m	struct:_kernelinfo
+configured	core.h	/^    std::map<int,int> configured;$/;"	m	struct:_kernelinfo
+KernelInfo	core.h	/^} KernelInfo;$/;"	t	typeref:struct:_kernelinfo
+_taskinfo	core.h	/^typedef struct _taskinfo$/;"	s
+taskID	core.h	/^    std::string taskID;$/;"	m	struct:_taskinfo
+traceID	core.h	/^    int traceID;        $/;"	m	struct:_taskinfo
+nodes	core.h	/^    std::vector < int> nodes;$/;"	m	struct:_taskinfo
+dependency	core.h	/^    std::vector <int> dependency;$/;"	m	struct:_taskinfo
+kernels	core.h	/^    std::vector <KernelInfo *>kernels;$/;"	m	struct:_taskinfo
+dagInfo	core.h	/^    DAGInfo * dagInfo;$/;"	m	struct:_taskinfo
+task_size	core.h	/^    unsigned int task_size;$/;"	m	struct:_taskinfo
+exTime	core.h	/^    float exTime;$/;"	m	struct:_taskinfo
+arrival	core.h	/^    unsigned long long int arrival;$/;"	m	struct:_taskinfo
+deadline	core.h	/^    unsigned long long int deadline;    $/;"	m	struct:_taskinfo
+basespeed	core.h	/^    std::vector <float> basespeed;$/;"	m	struct:_taskinfo
+data	core.h	/^    std::vector<void*>  data;$/;"	m	struct:_taskinfo
+isTerminal	core.h	/^    int isTerminal;$/;"	m	struct:_taskinfo
+TaskInfo	core.h	/^} TaskInfo;$/;"	t	typeref:struct:_taskinfo
+_event	core.h	/^typedef struct _event$/;"	s
+ev	core.h	/^    cl_event ev;$/;"	m	struct:_event
+type	core.h	/^    std::string type;$/;"	m	struct:_event
+_event	core.h	/^    _event(cl_event e,std::string t)$/;"	f	struct:_event
+get_timestamp	core.h	/^    unsigned long long int get_timestamp(std::string command)$/;"	f	struct:_event
+get_queue_submit	core.h	/^    unsigned long long int get_queue_submit()$/;"	f	struct:_event
+get_submit_start	core.h	/^    unsigned long long int get_submit_start()$/;"	f	struct:_event
+get_start_end	core.h	/^    unsigned long long int get_start_end()$/;"	f	struct:_event
+print	core.h	/^    void print()$/;"	f	struct:_event
+dump	core.h	/^    void dump()$/;"	f	struct:_event
+Event	core.h	/^} Event;$/;"	t	typeref:struct:_event
+_kernel_events	core.h	/^typedef struct _kernel_events$/;"	s
+write	core.h	/^    std::vector<cl_event> write;$/;"	m	struct:_kernel_events
+barrier_write	core.h	/^    cl_event barrier_write;$/;"	m	struct:_kernel_events
+exec	core.h	/^    cl_event exec;$/;"	m	struct:_kernel_events
+read	core.h	/^    std::vector<cl_event> read;$/;"	m	struct:_kernel_events
+barrier_read	core.h	/^    cl_event barrier_read;$/;"	m	struct:_kernel_events
+is_profiled	core.h	/^    int is_profiled;$/;"	m	struct:_kernel_events
+print	core.h	/^    void print()$/;"	f	struct:_kernel_events
+dump	core.h	/^    void dump()$/;"	f	struct:_kernel_events
+KernelEvents	core.h	/^} KernelEvents;$/;"	t	typeref:struct:_kernel_events
+_kernelexecutioninfo	core.h	/^typedef struct _kernelexecutioninfo{  $/;"	s
+devStartTime	core.h	/^    unsigned long long int  devStartTime;$/;"	m	struct:_kernelexecutioninfo
+devEndTime	core.h	/^    unsigned long long int  devEndTime;$/;"	m	struct:_kernelexecutioninfo
+devTotalTime	core.h	/^    unsigned long long int  devTotalTime; $/;"	m	struct:_kernelexecutioninfo
+write_buffers_start	core.h	/^    unsigned long long int write_buffers_start;$/;"	m	struct:_kernelexecutioninfo
+rel_start_time	core.h	/^    unsigned long long int  rel_start_time; \/\/dispatch start Rtime $/;"	m	struct:_kernelexecutioninfo
+rel_end_time	core.h	/^    unsigned long long int  rel_end_time; \/\/notify_callback start Rtime, read end Rtime $/;"	m	struct:_kernelexecutioninfo
+notify_callback_rel_start_time	core.h	/^    unsigned long long int  notify_callback_rel_start_time;$/;"	m	struct:_kernelexecutioninfo
+notify_callback_rel_end_time	core.h	/^    unsigned long long int  notify_callback_rel_end_time;$/;"	m	struct:_kernelexecutioninfo
+turnaroundTime	core.h	/^    unsigned long long int  turnaroundTime; \/\/ diff bw rel_end_time and rel_start_time$/;"	m	struct:_kernelexecutioninfo
+dispatchTime	core.h	/^    unsigned long long int  dispatchTime; \/\/ time difference between dispatch start and dispatch end$/;"	m	struct:_kernelexecutioninfo
+writeQueued	core.h	/^    unsigned long long int  writeQueued;$/;"	m	struct:_kernelexecutioninfo
+writeSubmit	core.h	/^    unsigned long long int  writeSubmit;$/;"	m	struct:_kernelexecutioninfo
+writeStart	core.h	/^    unsigned long long int  writeStart;$/;"	m	struct:_kernelexecutioninfo
+writeEnd	core.h	/^    unsigned long long int  writeEnd;$/;"	m	struct:_kernelexecutioninfo
+writeTime	core.h	/^    unsigned long long int  writeTime;$/;"	m	struct:_kernelexecutioninfo
+ndQueued	core.h	/^    unsigned long long int  ndQueued;$/;"	m	struct:_kernelexecutioninfo
+ndSubmit	core.h	/^    unsigned long long int  ndSubmit;$/;"	m	struct:_kernelexecutioninfo
+ndStart	core.h	/^    unsigned long long int  ndStart;$/;"	m	struct:_kernelexecutioninfo
+ndEnd	core.h	/^    unsigned long long int  ndEnd;$/;"	m	struct:_kernelexecutioninfo
+ndTime	core.h	/^    unsigned long long int  ndTime;$/;"	m	struct:_kernelexecutioninfo
+readQueued	core.h	/^    unsigned long long int  readQueued; $/;"	m	struct:_kernelexecutioninfo
+readSubmit	core.h	/^    unsigned long long int  readSubmit;   $/;"	m	struct:_kernelexecutioninfo
+readStart	core.h	/^    unsigned long long int  readStart;$/;"	m	struct:_kernelexecutioninfo
+readEnd	core.h	/^    unsigned long long int  readEnd;$/;"	m	struct:_kernelexecutioninfo
+readTime	core.h	/^    unsigned long long int  readTime; $/;"	m	struct:_kernelexecutioninfo
+write_start_h	core.h	/^    unsigned long long int  write_start_h;$/;"	m	struct:_kernelexecutioninfo
+write_start	core.h	/^    unsigned long long int  write_start;$/;"	m	struct:_kernelexecutioninfo
+write_end	core.h	/^    unsigned long long int  write_end;$/;"	m	struct:_kernelexecutioninfo
+write_time	core.h	/^    unsigned long long int  write_time;$/;"	m	struct:_kernelexecutioninfo
+nd_start_h	core.h	/^    unsigned long long int  nd_start_h;$/;"	m	struct:_kernelexecutioninfo
+nd_start	core.h	/^    unsigned long long int  nd_start;$/;"	m	struct:_kernelexecutioninfo
+nd_end	core.h	/^    unsigned long long int  nd_end;$/;"	m	struct:_kernelexecutioninfo
+nd_time	core.h	/^    unsigned long long int  nd_time;$/;"	m	struct:_kernelexecutioninfo
+read_start_h	core.h	/^    unsigned long long int  read_start_h;$/;"	m	struct:_kernelexecutioninfo
+read_start	core.h	/^    unsigned long long int  read_start;$/;"	m	struct:_kernelexecutioninfo
+read_end	core.h	/^    unsigned long long int  read_end;$/;"	m	struct:_kernelexecutioninfo
+read_time	core.h	/^    unsigned long long int  read_time;$/;"	m	struct:_kernelexecutioninfo
+frequency_change_time	core.h	/^    unsigned long long int frequency_change_time;$/;"	m	struct:_kernelexecutioninfo
+KernelExecutionInfo	core.h	/^} KernelExecutionInfo;$/;"	t	typeref:struct:_kernelexecutioninfo
+_kernellaunchinfo	core.h	/^typedef struct _kernellaunchinfo{$/;"	s
+task	core.h	/^    TaskInfo *task;$/;"	m	struct:_kernellaunchinfo
+kernel_index	core.h	/^    int kernel_index;$/;"	m	struct:_kernellaunchinfo
+ke	core.h	/^    KernelEvents ke;$/;"	m	struct:_kernellaunchinfo
+kex	core.h	/^    KernelExecutionInfo kex;$/;"	m	struct:_kernellaunchinfo
+io	core.h	/^    std::vector<cl_mem> io;$/;"	m	struct:_kernellaunchinfo
+platform_pos	core.h	/^    int platform_pos;$/;"	m	struct:_kernellaunchinfo
+device_pos	core.h	/^    int device_pos;$/;"	m	struct:_kernellaunchinfo
+device_index	core.h	/^    int device_index;$/;"	m	struct:_kernellaunchinfo
+not_done_count	core.h	/^    unsigned int not_done_count;$/;"	m	struct:_kernellaunchinfo
+size	core.h	/^    unsigned int size;$/;"	m	struct:_kernellaunchinfo
+offset	core.h	/^    unsigned int offset;$/;"	m	struct:_kernellaunchinfo
+queued	core.h	/^    int queued;  $/;"	m	struct:_kernellaunchinfo
+reset	core.h	/^    int reset;  $/;"	m	struct:_kernellaunchinfo
+frequency	core.h	/^    unsigned int frequency;$/;"	m	struct:_kernellaunchinfo
+control_mode	core.h	/^    int control_mode;$/;"	m	struct:_kernellaunchinfo
+priority	core.h	/^    int priority;$/;"	m	struct:_kernellaunchinfo
+start	core.h	/^    unsigned long long int start;$/;"	m	struct:_kernellaunchinfo
+expected_speed	core.h	/^    float expected_speed;$/;"	m	struct:_kernellaunchinfo
+last_speedup	core.h	/^    float last_speedup;$/;"	m	struct:_kernellaunchinfo
+KernelLaunchInfo	core.h	/^} KernelLaunchInfo;$/;"	t	typeref:struct:_kernellaunchinfo
+_DAGtime	core.h	/^typedef struct _DAGtime$/;"	s
+klinfo	core.h	/^    KernelLaunchInfo* klinfo;$/;"	m	struct:_DAGtime
+startTime	core.h	/^    unsigned long long int startTime;$/;"	m	struct:_DAGtime
+finishTime	core.h	/^    unsigned long long int finishTime;$/;"	m	struct:_DAGtime
+arrivalTime	core.h	/^    unsigned long long int arrivalTime;$/;"	m	struct:_DAGtime
+writeStart	core.h	/^    unsigned long long int writeStart;$/;"	m	struct:_DAGtime
+ndStart	core.h	/^    unsigned long long int ndStart;$/;"	m	struct:_DAGtime
+readStart	core.h	/^    unsigned long long int readStart;$/;"	m	struct:_DAGtime
+deadline	core.h	/^    float deadline;$/;"	m	struct:_DAGtime
+turnaroundTime	core.h	/^    float turnaroundTime;$/;"	m	struct:_DAGtime
+makespan	core.h	/^    float makespan;$/;"	m	struct:_DAGtime
+lateness	core.h	/^    float lateness;$/;"	m	struct:_DAGtime
+safe_mode	core.h	/^    int safe_mode;$/;"	m	struct:_DAGtime
+deadlineViolated	core.h	/^    int deadlineViolated;$/;"	m	struct:_DAGtime
+DAGTime	core.h	/^}DAGTime;$/;"	t	typeref:struct:_DAGtime
+_devConfig	core.h	/^typedef struct _devConfig{$/;"	s
+frequency	core.h	/^    unsigned int frequency;$/;"	m	struct:_devConfig
+speedup	core.h	/^    float speedup;$/;"	m	struct:_devConfig
+powerup	core.h	/^    float powerup;$/;"	m	struct:_devConfig
+DeviceConfig	core.h	/^} DeviceConfig;$/;"	t	typeref:struct:_devConfig
+_deviceSpecification	core.h	/^typedef struct _deviceSpecification{$/;"	s
+device_config	core.h	/^    std::vector<DeviceConfig*> device_config;    $/;"	m	struct:_deviceSpecification
+lowFrequencyBound	core.h	/^    unsigned int lowFrequencyBound; \/\/= frequencies[0];$/;"	m	struct:_deviceSpecification
+highFrequencyBound	core.h	/^    unsigned int highFrequencyBound;$/;"	m	struct:_deviceSpecification
+midFrequency	core.h	/^    unsigned int midFrequency; \/\/= frequencies[frequencies.size() - 1]; $/;"	m	struct:_deviceSpecification
+DeviceSpecification	core.h	/^} DeviceSpecification;$/;"	t	typeref:struct:_deviceSpecification
+_temperature	core.h	/^typedef struct _temperature{$/;"	s
+sensors	core.h	/^    std::vector<int> sensors;$/;"	m	struct:_temperature
+cpuB_0	core.h	/^    int cpuB_0;$/;"	m	struct:_temperature
+cpuB_1	core.h	/^    int cpuB_1;$/;"	m	struct:_temperature
+cpuB_2	core.h	/^    int cpuB_2;$/;"	m	struct:_temperature
+cpuB_3	core.h	/^    int cpuB_3;$/;"	m	struct:_temperature
+gpu_4	core.h	/^    int gpu_4;$/;"	m	struct:_temperature
+Temperature	core.h	/^} Temperature;$/;"	t	typeref:struct:_temperature
+_interval	core.h	/^typedef struct _interval{$/;"	s
+start	core.h	/^    unsigned long long int start;$/;"	m	struct:_interval
+end	core.h	/^    unsigned long long int end;$/;"	m	struct:_interval
+intervalWidth	core.h	/^    unsigned long long int intervalWidth;$/;"	m	struct:_interval
+Interval	core.h	/^}Interval;$/;"	t	typeref:struct:_interval
+gint	core.h	/^std::vector<int> gint;$/;"	v
+guint	core.h	/^std::vector<uint> guint;$/;"	v
+gshort	core.h	/^std::vector<short> gshort;$/;"	v
+gushort	core.h	/^std::vector<ushort> gushort;$/;"	v
+glong	core.h	/^std::vector<long> glong;$/;"	v
+gulong	core.h	/^std::vector<ulong> gulong;$/;"	v
+gbool	core.h	/^std::vector<bool> gbool;$/;"	v
+gfloat	core.h	/^std::vector<float> gfloat;$/;"	v
+gdouble	core.h	/^std::vector<double> gdouble;$/;"	v
+gchar	core.h	/^std::vector<char> gchar;$/;"	v
+__STRING_H	string.h	2;"	d
+main	scheduler.cpp	/^int main(int argc, char const *argv[])$/;"	f
+job_id	automation.py	/^job_id = sys.argv[1];$/;"	v
+start_node	automation.py	/^start_node = sys.argv[2]$/;"	v
+fused_node_id	automation.py	/^fused_node_id = sys.argv[3]$/;"	v
+tinfo_filename	automation.py	/^tinfo_filename= "node_" + start_node+ ":" + fused_node_id$/;"	v
+platform_id	automation.py	/^platform_id = sys.argv[4]$/;"	v
+device_id	automation.py	/^device_id = sys.argv[5]$/;"	v
+isDependent	automation.py	/^isDependent = '-1'$/;"	v
+l_deadline	automation.py	/^l_deadline = '999.0'$/;"	v
+arrivaltime	automation.py	/^arrivaltime = '0.0'$/;"	v
+deadline	automation.py	/^deadline = '999.0'$/;"	v
+isTerminal	automation.py	/^isTerminal = '1'$/;"	v
+global_dagid	automation.py	/^global_dagid = '0'$/;"	v
+instanceid	automation.py	/^instanceid = '0'$/;"	v
+frequency	automation.py	/^frequency = '-1'$/;"	v
+mico_kernel	automation.py	/^mico_kernel = '1'$/;"	v
+mico_kernel	automation.py	/^    mico_kernel = '0'$/;"	v
+path	automation.py	/^    path = "tinfo\/DAG_"+ job$/;"	v
+files_p	automation.py	/^    files_p = os.listdir(path)$/;"	v
+path	automation.py	/^path = "tinfo_full\/DAG_"+ job_id$/;"	v
+path1	automation.py	/^path1 = "tinfo\/DAG_"+ job_id$/;"	v
+files	automation.py	/^files = os.listdir(path)$/;"	v
+daghistory_file_contents	automation.py	/^daghistory_file_contents = open("dag_history\/dag_history_0.stats",'w')$/;"	v
+trace_file_contents	automation.py	/^trace_file_contents = open("trace\/dispatch_history_0.stats",'w')$/;"	v
+trace	automation.py	/^trace=(job_id+","+start_node+","+fused_node_id+","+isDependent+","+ platform_id+","+device_id+","+l_deadline+","+arrivaltime+"," +deadline+","+isTerminal+","+global_dagid+","+instanceid+","+frequency)$/;"	v
+lines	automation.py	/^lines = open('configure_input.txt').read().splitlines()$/;"	v
+filename	scripts/profile_overheads.py	/^	filename = sys.argv[1]$/;"	v
+run_command	scripts/profile_overheads.py	/^	run_command = "taskset -c 3-7 .\/scheduler trace\/dispatch_history_0.stats profile_statistics\/"+filename+"\/"$/;"	v
+make_directory	scripts/profile_overheads.py	/^	make_directory = "mkdir profile_statistics\/"+filename+"\/"$/;"	v
+command	scripts/profile_overheads.py	/^		command = run_command+filename+"_"+str(i)+".stats"$/;"	v
+input_arg	scripts/observe_variations.py	/^	input_arg = sys.argv[1]$/;"	v
+filename	scripts/observe_variations.py	/^	filename = "profile_statistics\/"+input_arg+"\/"+input_arg$/;"	v
+profile_map	scripts/observe_variations.py	/^	profile_map = defaultdict(lambda: defaultdict(list))$/;"	v
+f	scripts/observe_variations.py	/^		f = open(filename+"_"+str(i)+".stats",'r')$/;"	v
+profile_contents	scripts/observe_variations.py	/^		profile_contents = f.readlines()$/;"	v
+values	scripts/observe_variations.py	/^			values = line.strip("\\n").split("\\t\\t")$/;"	v
+dag_id	scripts/observe_variations.py	/^			dag_id = int(values[0])$/;"	v
+task_id	scripts/observe_variations.py	/^			task_id = int(values[1])$/;"	v
+mean	scripts/observe_variations.py	/^			mean = np.mean(profile_map[id_values][key])$/;"	v
+std	scripts/observe_variations.py	/^			std = np.std(profile_map[id_values][key])$/;"	v
+cv	scripts/observe_variations.py	/^			cv = std\/mean$/;"	v
+v	benchmark_synthesis/dnn_new/test.py	/^    v = [$/;"	v
+total_nodes	benchmark_synthesis/dnn_new/test.py	/^    total_nodes=len(v)$/;"	v
+dnn	benchmark_synthesis/dnn_new/test.py	/^        dnn = []$/;"	v
+uid	benchmark_synthesis/dnn_new/test.py	/^            uid = ""$/;"	v
+tid	benchmark_synthesis/dnn_new/test.py	/^            tid = ""$/;"	v
+variables	benchmark_synthesis/dnn_new/test.py	/^            variables=[]$/;"	v
+dag	benchmark_synthesis/dnn_new/test.py	/^            dag = 0$/;"	v
+depth	benchmark_synthesis/dnn_new/test.py	/^            depth = i$/;"	v
+ipbuffsize	benchmark_synthesis/dnn_new/test.py	/^            ipbuffsize = 2 * depth + 1$/;"	v
+opbuffsize	benchmark_synthesis/dnn_new/test.py	/^            opbuffsize = 1 * depth$/;"	v
+varsize	benchmark_synthesis/dnn_new/test.py	/^            varsize = 2 * depth$/;"	v
+buf_index	benchmark_synthesis/dnn_new/test.py	/^            buf_index = 0$/;"	v
+var_index	benchmark_synthesis/dnn_new/test.py	/^            var_index = 0$/;"	v
+datatype	benchmark_synthesis/dnn_new/test.py	/^            datatype = "float"$/;"	v
+src_file	benchmark_synthesis/dnn_new/test.py	/^            src_file = ".\/DNN\/src\/dnn_" + uid + ".cl"$/;"	v
+file	benchmark_synthesis/dnn_new/test.py	/^            file = open(src_file, "w")$/;"	v
+tinfoname	benchmark_synthesis/dnn_new/test.py	/^            tinfoname = ".\/DNN\/tinfo\/node_" + str(start_node) + ":" + uid$/;"	v
+dimension	benchmark_synthesis/dnn_new/test.py	/^            dimension = 1$/;"	v
+src_file_loc	benchmark_synthesis/dnn_new/test.py	/^            src_file_loc ="\/DAG_0\/dnn_" + uid + ".cl"$/;"	v
+kernel_name	benchmark_synthesis/dnn_new/test.py	/^            kernel_name = "dnn_" + uid$/;"	v
+DNN	benchmark_synthesis/dnn_new/dnn.py	/^class DNN(Kernel):$/;"	c
+__init__	benchmark_synthesis/dnn_new/dnn.py	/^    def __init__($/;"	m	class:DNN
+get_variables	benchmark_synthesis/dnn_new/dnn.py	/^    def get_variables(self,variables):$/;"	m	class:DNN
+initialise_kernel_info	benchmark_synthesis/dnn_new/dnn.py	/^    def initialise_kernel_info(self):$/;"	m	class:DNN
+get_input_buffer_sizes	benchmark_synthesis/dnn_new/dnn.py	/^    def get_input_buffer_sizes(self):$/;"	m	class:DNN
+get_output_buffer_sizes	benchmark_synthesis/dnn_new/dnn.py	/^    def get_output_buffer_sizes(self):$/;"	m	class:DNN
+set_kernel_info	benchmark_synthesis/dnn_new/dnn.py	/^    def set_kernel_info(self):$/;"	m	class:DNN
+define_variables	benchmark_synthesis/dnn_new/dnn.py	/^    def define_variables(self):$/;"	m	class:DNN
+function_signature	benchmark_synthesis/dnn_new/dnn.py	/^    def function_signature(self):$/;"	m	class:DNN
+global_ids	benchmark_synthesis/dnn_new/dnn.py	/^    def global_ids(self):$/;"	m	class:DNN
+init_private_variables	benchmark_synthesis/dnn_new/dnn.py	/^    def init_private_variables(self):$/;"	m	class:DNN
+load	benchmark_synthesis/dnn_new/dnn.py	/^    def load(self):$/;"	m	class:DNN
+load_compute_store	benchmark_synthesis/dnn_new/dnn.py	/^    def load_compute_store(self,depth):$/;"	m	class:DNN
+synchronization	benchmark_synthesis/dnn_new/dnn.py	/^    def synchronization(self):$/;"	m	class:DNN
+store	benchmark_synthesis/dnn_new/dnn.py	/^    def store(self):$/;"	m	class:DNN
+generate_source_code	benchmark_synthesis/dnn_new/dnn.py	/^    def generate_source_code(self):$/;"	m	class:DNN
+generate_fused_source_code	benchmark_synthesis/dnn_new/dnn.py	/^    def generate_fused_source_code(self):$/;"	m	class:DNN
+nodesNum	benchmark_synthesis/dnn_new/fusion_template.py	/^nodesNum=5$/;"	v
+DNN	benchmark_synthesis/dnn_new/fusion_template.py	/^class DNN(object):$/;"	c
+__init__	benchmark_synthesis/dnn_new/fusion_template.py	/^    def __init__(self, dag_id, input_size, cfg):$/;"	m	class:DNN
+get_dag_stats	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_dag_stats(self, input_size, cfg):$/;"	m	class:DNN
+get_kernel_parent_ids	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_kernel_parent_ids(self, kid):$/;"	m	class:DNN
+get_kernel_children_ids	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_kernel_children_ids(self, kid):$/;"	m	class:DNN
+get_skeleton_subgraph	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_skeleton_subgraph(self, kernel_ids):$/;"	m	class:DNN
+get_task_component_parents	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_task_component_parents(self, task_component):$/;"	m	class:DNN
+get_task_component_children	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_task_component_children(self, task_component):$/;"	m	class:DNN
+update_dependencies	benchmark_synthesis/dnn_new/fusion_template.py	/^    def update_dependencies(self, task_component):$/;"	m	class:DNN
+merge_task_components	benchmark_synthesis/dnn_new/fusion_template.py	/^    def merge_task_components(self, t1, t2):$/;"	m	class:DNN
+merge_independent_task_components	benchmark_synthesis/dnn_new/fusion_template.py	/^    def merge_independent_task_components(self, t1, t2):$/;"	m	class:DNN
+merge_task_list	benchmark_synthesis/dnn_new/fusion_template.py	/^    def merge_task_list(self, t):$/;"	m	class:DNN
+init_gemm	benchmark_synthesis/dnn_new/fusion_template.py	/^    def init_gemm(self, index):$/;"	m	class:DNN
+kernel_fusion	benchmark_synthesis/dnn_new/fusion_template.py	/^    def kernel_fusion(self, node_ids):$/;"	m	class:DNN
+Kernel	benchmark_synthesis/dnn_new/fusion_template.py	/^class Kernel(object):$/;"	c
+__init__	benchmark_synthesis/dnn_new/fusion_template.py	/^    def __init__($/;"	m	class:Kernel
+thread_ids	benchmark_synthesis/dnn_new/fusion_template.py	/^    def thread_ids(self, kernel_dimension):$/;"	m	class:Kernel
+load	benchmark_synthesis/dnn_new/fusion_template.py	/^    def load(self):$/;"	m	class:Kernel
+compute	benchmark_synthesis/dnn_new/fusion_template.py	/^    def compute(self):$/;"	m	class:Kernel
+store	benchmark_synthesis/dnn_new/fusion_template.py	/^    def store(self):$/;"	m	class:Kernel
+dump_tinfo	benchmark_synthesis/dnn_new/fusion_template.py	/^    def dump_tinfo(self, name, source, dimension, filename):$/;"	m	class:Kernel
+FusedKernel	benchmark_synthesis/dnn_new/fusion_template.py	/^class FusedKernel(object):$/;"	c
+__init__	benchmark_synthesis/dnn_new/fusion_template.py	/^    def __init__(self, kernel):$/;"	m	class:FusedKernel
+set_kernel_info	benchmark_synthesis/dnn_new/fusion_template.py	/^    def set_kernel_info(self):$/;"	m	class:FusedKernel
+get_first_kernel	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_first_kernel(self):$/;"	m	class:FusedKernel
+get_kernels	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_kernels(self):$/;"	m	class:FusedKernel
+get_kernel_ids	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_kernel_ids(self):$/;"	m	class:FusedKernel
+Gemm	benchmark_synthesis/dnn_new/fusion_template.py	/^class Gemm(Kernel):$/;"	c
+__init__	benchmark_synthesis/dnn_new/fusion_template.py	/^    def __init__($/;"	m	class:Gemm
+get_input_buffer_sizes	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_input_buffer_sizes(self):$/;"	m	class:Gemm
+get_output_buffer_sizes	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_output_buffer_sizes(self):$/;"	m	class:Gemm
+get_variable_values	benchmark_synthesis/dnn_new/fusion_template.py	/^    def get_variable_values(self):$/;"	m	class:Gemm
+set_kernel_info	benchmark_synthesis/dnn_new/fusion_template.py	/^    def set_kernel_info(self):$/;"	m	class:Gemm
+function_signature	benchmark_synthesis/dnn_new/fusion_template.py	/^    def function_signature(self):$/;"	m	class:Gemm
+init_matrix_coordinates	benchmark_synthesis/dnn_new/fusion_template.py	/^    def init_matrix_coordinates(self):$/;"	m	class:Gemm
+init_private_variables	benchmark_synthesis/dnn_new/fusion_template.py	/^    def init_private_variables(self):$/;"	m	class:Gemm
+init_shared_memory	benchmark_synthesis/dnn_new/fusion_template.py	/^    def init_shared_memory(self):$/;"	m	class:Gemm
+set_num_tiles	benchmark_synthesis/dnn_new/fusion_template.py	/^    def set_num_tiles(self, v1):$/;"	m	class:Gemm
+load	benchmark_synthesis/dnn_new/fusion_template.py	/^    def load(self):$/;"	m	class:Gemm
+load_compute_store	benchmark_synthesis/dnn_new/fusion_template.py	/^    def load_compute_store(self):  # M,N,K$/;"	m	class:Gemm
+store	benchmark_synthesis/dnn_new/fusion_template.py	/^    def store(self):$/;"	m	class:Gemm
+generate_source_code	benchmark_synthesis/dnn_new/fusion_template.py	/^    def generate_source_code(self):$/;"	m	class:Gemm

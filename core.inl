@@ -1,4 +1,4 @@
-#include "functionalities.h"
+#include "core.h"
 #define NumOfPlatforms 2
 using namespace std;
 unsigned long long int write_buffers_begin;
@@ -1116,6 +1116,61 @@ void create_micro_kernel(int platform)
     micro_kernel_klinfo=launch_info;
 }
 
+
+void *run_kernel(void *vargp){  
+    cpu_set_t cpuset;
+    pthread_t thread_id_scheduler = pthread_self(); 
+    CPU_ZERO(&cpuset);
+    CPU_SET(3, &cpuset);    
+    int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
+    struct sched_param params;
+    params.sched_priority = sched_get_priority_max(SCHED_RR);
+    pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
+    printf("\nrun_scheduler %u on core %d \n",pthread_self(),sched_getcpu());
+
+    KernelLaunchInfo *kl_info = (KernelLaunchInfo *) vargp;
+    if (LOG_SCHEDULER >=1)
+            fprintf(fp,"\n\nrun_scheduler: BEGIN: %llu \n",get_current_time());
+
+    std::string filename = "profile_dumps/trace_"+to_string(kl_info->task->traceID);
+    std::string microkernel_filename = "profile_dumps/microkernel_for_trace_"+to_string(kl_info->task->traceID);
+    ofstream ofs, ofs_microkernel;
+    ofs.open(filename,std::ios_base::app);
+    ofs_microkernel.open(microkernel_filename,std::ios_base::app);
+
+    for(int i = 0 ;i<PROFILE_ITERATIONS; i++)
+    {
+        if(micro_kernel_device!=-1)
+            dispatch(*micro_kernel_klinfo);
+        kl_info->kex.get_image_start_time = get_current_time();
+        reset_nonpersistent_host_arrays(*(kl_info->task->kernels[0]),kl_info->task->data);
+        kl_info->kex.get_image_end_time = get_current_time();
+        dispatch(*kl_info);
+        host_synchronize(all_cmd_qs);
+    
+        filename += to_string(i) + ".stats";
+        
+        dump_profile_statistics(kl_info,ofs);
+        dump_profile_statistics(micro_kernel_klinfo,ofs_microkernel);
+        release_kernel_events(kl_info->ke);
+        release_kernel_events(micro_kernel_klinfo->ke);
+        
+    }
+
+    ofs.close();
+    ofs_microkernel.close();
+    // printf("taskcount: %d, no_micro_kernel: %d, nTasks: %d\n",taskcount,no_micro_kernel,nTasks);
+
+    if(get_current_time()<hyper_period)
+        std::this_thread::sleep_for(std::chrono::microseconds(hyper_period-get_current_time()));
+
+    if (LOG_SCHEDULER >=1){
+        fprintf(fp,"run_scheduler: END: %llu \n",get_current_time());
+        fflush(fp);
+    }
+}
+
+
 void *run_scheduler(void *vargp){  
     cpu_set_t cpuset;
     pthread_t thread_id_scheduler = pthread_self(); 
@@ -1649,6 +1704,18 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
         fprintf(fp,"assign_kernel_info: END \n");
     }
     return kernel_info;
+}
+
+void reset_nonpersistent_host_arrays(KernelInfo& ki, std::vector<void*>& data)
+{
+    for (int i = 0; i < ki.inputBuffers.size(); ++i)
+    {
+        int persistent = std::get<3>(ki.inputBuffers.at(i));
+        std::string type =std::get<0>(ki.inputBuffers.at(i));
+        int size = std::get<1>(ki.inputBuffers.at(i));
+        if (!persistent)
+            array_randomize(data[i], type, size);
+    }   
 }
 
 void host_array_initialize(KernelInfo& ki, std::vector<void*>& data) {
@@ -2260,7 +2327,13 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
     int i;
     unsigned int datasize, buffer_offset, element_offset;
     cl_int status;
-    std::vector<cl_event> finish(ki.noInputBuffers);
+    int num_buffers = 0;
+    for(int i =0;i<ki.inputBuffers.size();i++)
+    {
+        if(!std::get<3>(ki.inputBuffers.at(i)))
+            num_buffers+=1;
+    }
+    std::vector<cl_event> finish(num_buffers);
     cl_uint mem_size;
     void* host_mem;
     int counter = 0;
@@ -2389,7 +2462,13 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
 
     int i;
     unsigned int datasize, buffer_offset, element_offset;
-    std::vector<cl_event> finish(ki.noOutputBuffers);
+    int num_buffers = 0;
+    for(int i =0;i<ki.outputBuffers.size();i++)
+    {
+        if(!std::get<3>(ki.inputBuffers.at(i)))
+            num_buffers+=1;
+    }
+    std::vector<cl_event> finish(num_buffers);
     cl_int status;
     int counter = 0;
     for (i = 0; i < ki.outputBuffers.size(); ++i)
@@ -2502,7 +2581,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 
 
     unsigned long long int release_buff_Kevent_time=get_current_time();
-    release_buffers(kl->io);    
+    // #STOP_RELEASE release_buffers(kl->io);    
     // release_kernel_events(kl->ke);
     release_buff_Kevent_time=get_current_time()-release_buff_Kevent_time;
 
@@ -2640,7 +2719,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 
             releaseHostArray_time=get_current_time();
             // printf("release_host_arrays b4\n");
-            release_host_arrays(kl->task->data);
+            // #STOP_RELEASE release_host_arrays(kl->task->data);
             // printf("release_host_arrays done\n");
             releaseHostArray_time=get_current_time()-releaseHostArray_time;
 
@@ -2854,6 +2933,18 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 
 }
 
+void dump_profile_statistics(KernelLaunchInfo *kl,std::ofstream &ofs)
+{
+    std::string timing_information = "";
+    KernelExecutionInfo kex = kl->kex;
+    KernelEvents ke = kl->ke;
+    timing_information += ke.dump_times();
+    stringstream ss;
+    ss <<"getimage_time:" << kex.get_image_end_time - kex.get_image_start_time << ";host_time:" << kex.rel_end_time-kex.rel_start_time <<"\n";
+    timing_information +=ss.str();
+    ofs << timing_information;
+    ofs.close();    
+}
 
 void dump_execution_time_statistics(KernelLaunchInfo *kl,int dag_id, int task_id, std::ofstream &ofs)
 {

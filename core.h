@@ -1,7 +1,3 @@
-
-#ifndef __FUNCTIONALITIES_H  // Control inclusion of header files
-#define __FUNCTIONALITIES_H 
-
 // System includes
 #include <stdio.h> 
 #include <stdlib.h>
@@ -48,7 +44,7 @@
 #include <CL/cl_ext.h>
 // Custom includes
 #include "string.h"
-
+#define PROFILE_ITERATIONS 100
 int STR_LENGTH; 
 int NumOfJobs;
 int NumCoresPerDevice;
@@ -355,6 +351,14 @@ typedef struct _event
 
     }
 
+    std::string dump_time()
+    {
+       std::stringstream ss;
+       ss << this->type << this->get_queue_submit() <<";"<< this->get_submit_start()<< ";"<<this->get_start_end()<<";";
+       return ss.str();
+
+    }
+
     void print()
     {
         if(this->type == "write")
@@ -397,6 +401,27 @@ typedef struct _kernel_events
     cl_event barrier_read;
     int is_profiled;
 
+    std::string dump_times()
+    {
+        std::string time_info = "";
+        for(unsigned int i=0;i<write.size();i++)
+        {
+            std::string type = "write";
+            Event *e = new Event(write[i],type);
+            time_info += e->dump_time();
+        }
+        std::string type = "execute";
+        Event *e = new Event(exec,type);
+        time_info += e->dump_time();
+        for(unsigned int i=0;i<read.size();i++)
+        {
+            std::string type = "read";
+            Event *e = new Event(read[i],type);
+            time_info += e->dump_time();
+        }
+
+        return time_info;    
+    }
     void print()
     {
         for(unsigned int i=0;i<write.size();i++)
@@ -446,7 +471,7 @@ typedef struct _kernelexecutioninfo{
     unsigned long long int  devStartTime;
     unsigned long long int  devEndTime;
     unsigned long long int  devTotalTime; 
-    unsigned long long int write_buffers_start;
+    unsigned long long int  write_buffers_start;
     unsigned long long int  rel_start_time; //dispatch start Rtime 
     unsigned long long int  rel_end_time; //notify_callback start Rtime, read end Rtime 
     unsigned long long int  notify_callback_rel_start_time;
@@ -488,6 +513,8 @@ typedef struct _kernelexecutioninfo{
     unsigned long long int  read_time;
 
     unsigned long long int frequency_change_time;
+    unsigned long long int get_image_start_time;
+    unsigned long long int get_image_end_time;
     
 
 } KernelExecutionInfo;
@@ -574,6 +601,7 @@ typedef struct _interval{
 unsigned long long int convert_to_relative_time( unsigned long long int t,unsigned long long int ref);
 void dump_profile_event_timing(KernelExecutionInfo kex);
 void dump_execution_time_statistics(KernelLaunchInfo *kl,int dag, int task,std::ofstream &ofs);
+void dump_profile_statistics(KernelLaunchInfo *kl,std::ofstream &ofs);
 void create_micro_kernel(int platform);
 void strip_ext(char *fname);
 std::string getFileName(std::string filePath, bool withExtension, char seperator);
@@ -622,6 +650,7 @@ int check_dependancy(std::vector <string> deps,int dag);
 void create_output_file(const char* op_file);
 int read_trace_file(const char* filename);
 void *run_scheduler(void *vargp);
+void *run_kernel(void *vargp);
 void run_scheduler(int taskcount);
 int chunk_factor(KernelLaunchInfo* kl);
 unsigned long long int get_current_time();
@@ -648,6 +677,7 @@ KernelInfo* assign_kernel_info(const char * info_file_name);
 void profile_events(KernelLaunchInfo& kl_info);
 int store_variable_kernel_arg(std::string type, std::string value);
 void host_array_initialize(KernelInfo& ki, std::vector<void*>& data);
+void reset_nonpersistent_host_arrays(KernelInfo& ki, std::vector<void*>& data);
 void array_randomize(void* data, std::string type, int size);
 void output_initialize(void* data, std::string type, int size);
 void* array_allocate(std::string type, int size);
@@ -698,11 +728,3 @@ std::vector<bool> gbool;
 std::vector<float> gfloat;
 std::vector<double> gdouble;
 std::vector<char> gchar;
-
-
-
-
-
-#include "core.inl"
-
-#endif
