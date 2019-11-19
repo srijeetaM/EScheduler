@@ -44,7 +44,7 @@
 #include <CL/cl_ext.h>
 // Custom includes
 #include "string.h"
-#define PROFILE_ITERATIONS 100
+#define PROFILE_ITERATIONS 2
 int STR_LENGTH; 
 int NumOfJobs;
 int NumCoresPerDevice;

@@ -62,16 +62,16 @@ int main(int argc, char const *argv[])
         nTasks=0; 
         SchedulerFinish=0;   
         pthread_t thread_temperature_monitor,thread_scheduler;
-        printf("\nStartTime run_scheduler: %llu\n",get_current_time());     
+        printf("\nStartTime run_kernel: %llu\n",get_current_time());     
 
         struct timeval c_time;
         gettimeofday(&c_time,NULL); 
         START_TIME=(unsigned long long int )(c_time.tv_sec*1000000+c_time.tv_usec); 
-        KernelLaunchInfo *kl_info = taskMap.begin()->second;
+        cout << "\tTrying for DAG ID " << taskMap.begin()->first.first << '\t' << "Kernel ID " << taskMap.begin()->first.second << "KernelObject: "<<taskMap.begin()->second->kernel_index<<'\n';
         
         if(monitorTemp==1)
           pthread_create(&thread_temperature_monitor, NULL, temperature_monitor, NULL);          
-        pthread_create(&thread_scheduler, &attr, run_kernel, &kl_info);  
+        pthread_create(&thread_scheduler, &attr, run_kernel, &traceCount);  
                 
         
         pthread_join(thread_scheduler, NULL);
@@ -99,7 +99,7 @@ int main(int argc, char const *argv[])
         std::cerr << "Exception caught : " << e.what() << std::endl;
     }
     
-    printf("Exit Hyperperiods\n");    
+
     
     if(controlerTemp==1)
       pthread_join(thread_controller, NULL);    
@@ -107,16 +107,16 @@ int main(int argc, char const *argv[])
     // /*Release objects*/    
     // for(int i=0;i<task_queue.size();i++)
     //     release_host_arrays(task_queue[i].data); 
-    std::ofstream ofs;
-    ofs.open(argv[2],std::ios_base::app);
-    printf("-------------------------Execution Statistics--------------------------------------\n");
-    // printf("dag \t\t task \t\t w_delay \t\t w \t\t e_delay \t\t e \t\t r_delay \t\t r \t\t k_ex \t\t h_ex \t\t h_over \t\t cb \t\t cb_over\n");
-    for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr) { 
-      cout << "\tDAG ID " << itr->first.first << '\t' << "Kernel ID " << itr->first.second << '\n'; 
-      dump_execution_time_statistics(itr->second,itr->first.first,itr->first.second,ofs);
+    // std::ofstream ofs;
+    // ofs.open(argv[2],std::ios_base::app);
+    // printf("-------------------------Execution Statistics--------------------------------------\n");
+    // // printf("dag \t\t task \t\t w_delay \t\t w \t\t e_delay \t\t e \t\t r_delay \t\t r \t\t k_ex \t\t h_ex \t\t h_over \t\t cb \t\t cb_over\n");
+    // for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr) { 
+    //   cout << "\tDAG ID " << itr->first.first << '\t' << "Kernel ID " << itr->first.second << '\n'; 
+    //   dump_execution_time_statistics(itr->second,itr->first.first,itr->first.second,ofs);
     
-    }
-    ofs.close(); 
+    // }
+    // ofs.close(); 
     release_everything(all_ctxs, all_cmd_qs);
     printf("released_everything\n");
 

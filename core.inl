@@ -507,7 +507,7 @@ void get_all_devices()
 
 void reset_launch_info()
 {
-    printf("TaskMap size: %d\n",taskMap.size());
+    printf("TaskMap size: %lu\n",taskMap.size());
     for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr)       
     {
         KernelLaunchInfo* klinfo=itr->second;
@@ -964,7 +964,7 @@ void populate_task_queue()
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"\npopulate_task_queue: BEGIN \n");
 
-    printf("trace_queue size: %llu\n",trace_queue.size());
+    printf("trace_queue size: %lu\n",trace_queue.size());
     for(int i=0;i<trace_queue.size();i++)
     {
         // printf("Index: %d\n",i);
@@ -972,7 +972,7 @@ void populate_task_queue()
         parse_trace_input(index);     
     } 
     // printf("parse_trace_input end\n");
-    printf("size of taskQueue: %d-%d:%d",task_queue[0][0].size(),task_queue[0][1].size(),task_queue[1][0].size());
+    printf("size of taskQueue: %lu-%lu:%lu",task_queue[0][0].size(),task_queue[0][1].size(),task_queue[1][0].size());
     initialise_nodes_matrix();
     // printf("initialise_nodes_matrix\n");
     if (LOG_SCHEDULER >=1)
@@ -1126,16 +1126,24 @@ void *run_kernel(void *vargp){
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_RR);
     pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
-    printf("\nrun_scheduler %u on core %d \n",pthread_self(),sched_getcpu());
+    int taskcount=*((int *) vargp);
+    printf("\nrun_kernel %lu on core %d \n",pthread_self(),sched_getcpu());
 
-    KernelLaunchInfo *kl_info = (KernelLaunchInfo *) vargp;
+    // KernelLaunchInfo *kl_info = (KernelLaunchInfo *) vargp;
+    // printf("Obtaining Kernel Launch Info Object\n ");    
+    
+    KernelLaunchInfo *kl_info = taskMap.begin()->second;
+    printf("Obtained Kernel Launch Info Object for trace %d\n",kl_info->task->traceID);    
+    
     if (LOG_SCHEDULER >=1)
-            fprintf(fp,"\n\nrun_scheduler: BEGIN: %llu \n",get_current_time());
+            fprintf(fp,"\n\nrun_kernel: BEGIN: %llu \n",get_current_time());
 
-    std::string filename = "profile_dumps/trace_"+to_string(kl_info->task->traceID);
-    std::string microkernel_filename = "profile_dumps/microkernel_for_trace_"+to_string(kl_info->task->traceID);
+    std::string filename = "./profile_statistics/trace_"+to_string(kl_info->task->traceID)+".stats";
+    std::string microkernel_filename = "./profile_statistics/microkernel_for_trace_"+to_string(kl_info->task->traceID)+".stats";
     ofstream ofs, ofs_microkernel;
     ofs.open(filename,std::ios_base::app);
+    
+    cout <<"Dumping to files "<< filename <<" and " << microkernel_filename <<"\n";
     ofs_microkernel.open(microkernel_filename,std::ios_base::app);
 
     for(int i = 0 ;i<PROFILE_ITERATIONS; i++)
@@ -1168,6 +1176,7 @@ void *run_kernel(void *vargp){
         fprintf(fp,"run_scheduler: END: %llu \n",get_current_time());
         fflush(fp);
     }
+    printf("exiting\n");
 }
 
 
@@ -1180,7 +1189,7 @@ void *run_scheduler(void *vargp){
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_RR);
     pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
-    printf("\nrun_scheduler %u on core %d \n",pthread_self(),sched_getcpu());
+    printf("\nrun_scheduler %lu on core %d \n",pthread_self(),sched_getcpu());
 
     int taskcount=*((int *) vargp);
     if (LOG_SCHEDULER >=1)
@@ -2047,9 +2056,9 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
 
     // printf("before create buffer\n");
     //Creating buffers for device
-    KernelInfo kernel_info = *(kl_info.task->kernels[index]);
-   
-    if (!kernel_info.configured[kl_info.platform_pos])
+    KernelInfo *kernel_info = kl_info.task->kernels[index];
+    printf("Configured kernel status: %d\n",kernel_info->configured[kl_info.platform_pos]);
+    if (!kernel_info->configured[kl_info.platform_pos])
         cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset);
     // printf("after create buffer\n");
 
@@ -2066,6 +2075,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     clFlush(cmd_q);
 
     kl_info.kex.nd_start_h=get_current_time();
+    printf("clEnqueueNDRangeKernel with datasize %d\n",datasize);
     kl_info.ke.exec = cl_enqueue_nd_range_kernel(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.platform_pos, datasize,kl_info.ke.write.back());//kl_info.ke.write.back());
     
    clFlush(cmd_q);
@@ -2100,7 +2110,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
         fflush(fp);
     }
     printf("dispatch %d: END: %llu\n",kl_info.task->traceID,get_current_time());
-    kernel_info.configured[kl_info.platform_pos];
+    kernel_info->configured[kl_info.platform_pos]=1;
     return barrier_ev_read;
 }
 
@@ -2328,10 +2338,15 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
     unsigned int datasize, buffer_offset, element_offset;
     cl_int status;
     int num_buffers = 0;
-    for(int i =0;i<ki.inputBuffers.size();i++)
+    if(ki.configured[dtype])
+        for(int i =0;i<ki.inputBuffers.size();i++)
+        {
+            if(!std::get<3>(ki.inputBuffers.at(i)))
+                num_buffers+=1;
+        }
+    else
     {
-        if(!std::get<3>(ki.inputBuffers.at(i)))
-            num_buffers+=1;
+        num_buffers = ki.noInputBuffers;
     }
     std::vector<cl_event> finish(num_buffers);
     cl_uint mem_size;
@@ -2463,10 +2478,15 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
     int i;
     unsigned int datasize, buffer_offset, element_offset;
     int num_buffers = 0;
-    for(int i =0;i<ki.outputBuffers.size();i++)
+    if(ki.configured[dtype])
+        for(int i =0;i<ki.outputBuffers.size();i++)
+        {
+            if(!std::get<3>(ki.inputBuffers.at(i)))
+                num_buffers+=1;
+        }
+    else
     {
-        if(!std::get<3>(ki.inputBuffers.at(i)))
-            num_buffers+=1;
+        num_buffers = ki.noOutputBuffers;
     }
     std::vector<cl_event> finish(num_buffers);
     cl_int status;
