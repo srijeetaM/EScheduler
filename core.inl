@@ -964,7 +964,7 @@ void populate_task_queue()
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"\npopulate_task_queue: BEGIN \n");
 
-    printf("trace_queue size: %u\n",trace_queue.size());
+    printf("trace_queue size: %llu\n",trace_queue.size());
     for(int i=0;i<trace_queue.size();i++)
     {
         // printf("Index: %d\n",i);

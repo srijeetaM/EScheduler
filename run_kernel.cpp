@@ -1,4 +1,4 @@
-#include "core.h"
+#include "core.inl"
 int main(int argc, char const *argv[])
 {	
 
@@ -56,55 +56,43 @@ int main(int argc, char const *argv[])
 
     try
     {
-      for(int i=0;i<numOfHyperperiod;i++)    
-      {   
-          printf("in hyperperiod: %llu\n",hyper_period);
+         
+        reset_launch_info();
+        printf("reset_launch_info\n");
+        nTasks=0; 
+        SchedulerFinish=0;   
+        pthread_t thread_temperature_monitor,thread_scheduler;
+        printf("\nStartTime run_scheduler: %llu\n",get_current_time());     
 
-          // if(numOfDAGs!=count_dag_from_file(argv2))
-          // {
-          //     printf("New task DAG added! \n");
-          //     traceCount=modify_dag_task_data(argv2,argv[1],traceCount);
-          // }
-          
+        struct timeval c_time;
+        gettimeofday(&c_time,NULL); 
+        START_TIME=(unsigned long long int )(c_time.tv_sec*1000000+c_time.tv_usec); 
+        KernelLaunchInfo *kl_info = taskMap.begin()->second;
+        
+        if(monitorTemp==1)
+          pthread_create(&thread_temperature_monitor, NULL, temperature_monitor, NULL);          
+        pthread_create(&thread_scheduler, &attr, run_kernel, &kl_info);  
+                
+        
+        pthread_join(thread_scheduler, NULL);
+        printf("Thread Join thread scheduler: %llu\n",get_current_time());
+                
+        SchedulerFinish=1; 
+        if(monitorTemp==1)       
+        { 
+          pthread_join(thread_temperature_monitor, NULL); 
+          print_tempMap();
+        }
+        if(controlerTemp==1)
+        {  
+          int mode=MODE;
+          pthread_create(&thread_controller, NULL, mode_controller,&mode ); 
+        }
+        if(generatePlot==1)
+          generate_plot_data(traceCount);
+                  
+      
     
-          reset_launch_info();
-          printf("reset_launch_info\n");
-          nTasks=0; 
-          SchedulerFinish=0;   
-                   
-          pthread_t thread_taskQtoReadyB, thread_temperature_monitor,thread_scheduler;
-          printf("\nStartTime run_scheduler: %llu\n",get_current_time());     
-
-          struct timeval c_time;
-          gettimeofday(&c_time,NULL); 
-          START_TIME=(unsigned long long int )(c_time.tv_sec*1000000+c_time.tv_usec); 
-          pthread_create(&thread_taskQtoReadyB, NULL, taskToReadyB, &traceCount);        
-          if(monitorTemp==1)
-            pthread_create(&thread_temperature_monitor, NULL, temperature_monitor, NULL);          
-          pthread_create(&thread_scheduler, &attr, run_scheduler, &traceCount);  
-          
-          pthread_join(thread_taskQtoReadyB, NULL); 
-          printf("Thread Join1: %llu\n",get_current_time());
-          pthread_join(thread_scheduler, NULL);
-          printf("Thread Join2: %llu\n",get_current_time());
-
-          host_synchronize(all_cmd_qs);
-          printf("Host Synchronised: %d\n",nKernels);
-          SchedulerFinish=1; 
-          if(monitorTemp==1)       
-          { 
-            pthread_join(thread_temperature_monitor, NULL); 
-            print_tempMap();
-          }
-          if(controlerTemp==1)
-          {  
-            int mode=MODE;
-            pthread_create(&thread_controller, NULL, mode_controller,&mode ); 
-          }
-          if(generatePlot==1)
-            generate_plot_data(traceCount);
-                    
-      }
     }
     catch (std::exception& e)
     {
