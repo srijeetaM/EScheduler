@@ -2,5 +2,5 @@ KernelName=dnn_1_2_3_4
 KernelSource=/DAG_0/dnn_1_2_3_4.cl
 workDimension=1
 globalWorkSize=4096,1,1
-inputBuffers=float,4096,0,1,float,8388608,1,0,float,2048,2,0,float,2097152,3,0,float,1024,4,0,float,524288,5,0,float,512,6,0,float,8192,7,0,float,16,8,0
-outputBuffers=float,2048,9,0,float,1024,10,0,float,512,11,0,float,16,12,0
+inputBuffers=float,4096,0,0,float,8388608,1,1,float,2048,2,1,float,2097152,3,1,float,1024,4,1,float,524288,5,1,float,512,6,1,float,8192,7,1,float,16,8,1
+outputBuffers=float,2048,9,1,float,1024,10,1,float,512,11,1,float,16,12,0

@@ -44,7 +44,7 @@
 #include <CL/cl_ext.h>
 // Custom includes
 #include "string.h"
-#define PROFILE_ITERATIONS 2
+#define PROFILE_ITERATIONS 10
 int microkernel_start=0;
 int profilekernel_start=0;
 int STR_LENGTH; 

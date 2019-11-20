@@ -2,6 +2,6 @@ KernelName=dnn_3
 KernelSource=/DAG_0/dnn_3.cl
 workDimension=1
 globalWorkSize=1024,1,1
-inputBuffers=float,1024,0,1,float,524288,1,0,float,512,2,0
+inputBuffers=float,1024,0,0,float,524288,1,1,float,512,2,1
 outputBuffers=float,512,3,0
 data_outflow=4,0,3

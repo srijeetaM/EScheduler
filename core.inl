@@ -3060,7 +3060,7 @@ void dump_profile_statistics(KernelLaunchInfo *kl,std::ofstream &ofs)
     timing_information +=ss.str();
     PERSISTENCE_DEBUG cout<<timing_information;
     ofs << timing_information;
-    ofs.close();    
+    // ofs.close();    
 }
 
 void dump_execution_time_statistics(KernelLaunchInfo *kl,int dag_id, int task_id, std::ofstream &ofs)

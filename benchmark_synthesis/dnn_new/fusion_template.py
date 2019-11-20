@@ -212,7 +212,7 @@ class Kernel(object):
     def store(self):
         raise NotImplementedError
 
-    def dump_tinfo(self, name, source, dimension, filename):
+    def dump_tinfo(self, name, source, dimension, filename,num_args=-1):
         kernelName = "KernelName=" + name + "\n"
         kernelSource = "KernelSource=" + source + "\n"
         workDimension = "workDimension=" + str(dimension) + "\n"
@@ -224,9 +224,9 @@ class Kernel(object):
         for input_buffer in self.buffer_info["input"]:
             inputBuffers = inputBuffers + ",".join([str(b) for b in input_buffer[:-1]])
             if input_buffer[:-1][2]==0:
-                inputBuffers += ",1"
-            else:
                 inputBuffers += ",0"
+            else:
+                inputBuffers += ",1"
             inputBuffers += ","
 
         inputBuffers = "inputBuffers=" + inputBuffers[:-1] + "\n"
@@ -236,10 +236,10 @@ class Kernel(object):
             outputBuffers = outputBuffers + ",".join(
                 [str(b) for b in output_buffer[:-1]]
             )
-            if output_buffer[:-1][2]==0:
-                outputBuffers += ",1"
-            else:
+            if output_buffer[:-1][2]==num_args-1:
                 outputBuffers += ",0"
+            else:
+                outputBuffers += ",1"
             outputBuffers += ","
             
         outputBuffers = "outputBuffers=" + outputBuffers[:-1] + "\n"
@@ -291,6 +291,7 @@ class FusedKernel(object):
         self.input_buffer_sizes = []
         self.output_buffer_sizes = []
         self.variable_values = []
+        self.num_args = 0
 
     def set_kernel_info(self):
 
@@ -338,6 +339,7 @@ class FusedKernel(object):
             arg_index += 1
             self.variable_index += 1
             counter += 1
+        self.num_args = arg_index
 
     def get_first_kernel(self):
         """

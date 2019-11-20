@@ -26,7 +26,18 @@ int main(int argc, char const *argv[])
     print_all_device_info(all_devices);
     fflush(fp);     
 
-    build_all_kernel_objects("./tinfo/");
+
+    //build_all_kernel_objects("./tinfo/");
+    const char* filename = argv[2];
+    KernelInfo *cl_info_0=new KernelInfo();   
+    KernelInfo *cl_info_1=new KernelInfo();    
+    build_kernel_from_info(*cl_info_0, filename, all_devices, all_ctxs);//Build opencl kernel
+    build_kernel_from_info(*cl_info_1, filename, all_devices, all_ctxs);
+    kernel_cl_queue[filename]=make_pair(cl_info_0,cl_info_1);
+    
+    int profile_trace_value = atoi(argv[3]);
+    int micro_kernel_device = atoi(argv[4]);
+    
     // printf("build_all_kernel_objects \n");
 
     /*get input file for trace*/

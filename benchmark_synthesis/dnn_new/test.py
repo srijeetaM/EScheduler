@@ -61,5 +61,6 @@ if __name__ == "__main__":
             dimension = 1
             src_file_loc ="/DAG_0/dnn_" + uid + ".cl"
             kernel_name = "dnn_" + uid
-            dnn[-1].dump_tinfo(kernel_name, src_file_loc, dimension, tinfoname)
+            num_args = dnn[-1].num_input_buffers + dnn[-1].num_output_buffers
+            dnn[-1].dump_tinfo(kernel_name, src_file_loc, dimension, tinfoname,num_args)
 
