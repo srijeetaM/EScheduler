@@ -47,9 +47,9 @@ int main(int argc, char const *argv[])
     pthread_t scheduler = pthread_self(); 
     rc = pthread_attr_init (&attr);
     rc = pthread_attr_getschedparam (&attr, &param);
-    
-    param.sched_priority = sched_get_priority_max(SCHED_RR);
-    pthread_setschedparam(scheduler,SCHED_RR,&param);
+    (param.sched_priority)++;
+    // param.sched_priority = sched_get_priority_max(SCHED_RR);
+    // pthread_setschedparam(scheduler,SCHED_RR,&param);
     rc = pthread_attr_setschedparam (&attr, &param);
 
     pthread_t  thread_controller;
@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
         
         pthread_join(thread_scheduler, NULL);
         printf("Thread Join thread scheduler: %llu\n",get_current_time());
-                
+        host_synchronize(all_cmd_qs);            
         SchedulerFinish=1; 
         if(monitorTemp==1)       
         { 

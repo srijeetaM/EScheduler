@@ -505,6 +505,41 @@ void get_all_devices()
     //return all_devices;
 }
 
+void reset_kl_info()
+{
+    
+    for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr)       
+    {
+        KernelLaunchInfo* klinfo=itr->second;
+        klinfo->queued=0;
+        KernelInfo* cl_info_0=klinfo->task->kernels[0];
+        // klinfo->task->data.clear();
+        reset_nonpersistent_host_arrays(*cl_info_0, klinfo->task->data);
+        
+            // printf("data size: %d\n",klinfo->task->data.size());
+        if(klinfo->control_mode!=2)
+            klinfo->size = cl_info_0->globalWorkSize[0]*cl_info_0->globalWorkSize[1]*cl_info_0->globalWorkSize[2];
+        else
+        {
+            klinfo->size = klinfo->task->task_size;
+        }
+        klinfo->offset = 0;
+        klinfo->priority=0;
+        //reset dagtimematrix
+        for(int i=0;i<DAGtimeMatrix.size();i++)
+        {
+            for(int j=0;j<DAGtimeMatrix[i].size();j++)
+            {
+                DAGtimeMatrix[i][j]->safe_mode=0;
+                DAGtimeMatrix[i][j]->deadlineViolated=0;
+            }
+        }
+        printf("reset: %s - %d size %u offset %u \n",klinfo->task->taskID.c_str(),klinfo->queued,klinfo->size,klinfo->offset);
+        klinfo->reset=1;
+        
+    }
+}
+
 void reset_launch_info()
 {
     printf("TaskMap size: %lu\n",taskMap.size());
@@ -1123,9 +1158,15 @@ void *run_kernel(void *vargp){
     CPU_ZERO(&cpuset);
     CPU_SET(3, &cpuset);    
     int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
-    struct sched_param params;
-    params.sched_priority = sched_get_priority_max(SCHED_RR);
-    pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
+    int rc;
+    pthread_attr_t attr;
+    struct sched_param param;
+    // params.sched_priority = sched_get_priority_max(SCHED_RR);
+    // pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
+    rc = pthread_attr_init (&attr);
+    
+    (param.sched_priority)++;
+    rc = pthread_attr_setschedparam (&attr, &param);
     int taskcount=*((int *) vargp);
     printf("\nrun_kernel %lu on core %d \n",pthread_self(),sched_getcpu());
 
@@ -1142,27 +1183,55 @@ void *run_kernel(void *vargp){
     std::string microkernel_filename = "./profile_statistics/microkernel_for_trace_"+to_string(kl_info->task->traceID)+".stats";
     ofstream ofs, ofs_microkernel;
     ofs.open(filename,std::ios_base::app);
-    
-    cout <<"Dumping to files "<< filename <<" and " << microkernel_filename <<"\n";
     ofs_microkernel.open(microkernel_filename,std::ios_base::app);
 
     for(int i = 0 ;i<PROFILE_ITERATIONS; i++)
     {
+        printf("Dispatching microkernel\n");
         if(micro_kernel_device!=-1)
+        {
             dispatch(*micro_kernel_klinfo);
-        kl_info->kex.get_image_start_time = get_current_time();
-        reset_nonpersistent_host_arrays(*(kl_info->task->kernels[0]),kl_info->task->data);
-        kl_info->kex.get_image_end_time = get_current_time();
-        dispatch(*kl_info);
-        host_synchronize(all_cmd_qs);
-    
-        filename += to_string(i) + ".stats";
+            micro_kernel_klinfo->finished=0;
+        }
         
+        kl_info->kex.get_image_start_time = get_current_time();
+        // reset_nonpersistent_host_arrays(*(kl_info->task->kernels[0]),kl_info->task->data);
+        kl_info->kex.get_image_end_time = get_current_time();
+        printf("Dispatching kernel to be profiled\n");
+        dispatch(*kl_info);
+        kl_info->finished=0;
+        
+        // int bound = 0;
+        // if(micro_kernel_device!=-1)
+        //     bound = 2;
+        // else
+        //     bound = 1;
+        
+        
+        // while(num_profile_kernels < bound )
+        // {
+
+        //     printf("HOST %d\n",num_profile_kernels);
+            
+        // }
+        std::unique_lock<std::mutex> lk(run_kernel_lock);
+        cv.wait(lk, []{return processed;});
+        num_profile_kernels=0;
+        micro_kernel_klinfo->finished=0;
+        printf("microkernel finished!\n");
+        kl_info->finished=0;
+        printf("profile kernel finished!\n");
+        printf("Dumping profile statistics\n");
         dump_profile_statistics(kl_info,ofs);
         dump_profile_statistics(micro_kernel_klinfo,ofs_microkernel);
+        printf("Releasing kernel events\n");
         release_kernel_events(kl_info->ke);
         release_kernel_events(micro_kernel_klinfo->ke);
-        
+        printf("Resetting kl info\n");
+        reset_kl_info();
+        printf("Finishing iteration %d\n",i);
+        processed = false;
+           
     }
 
     ofs.close();
@@ -2078,8 +2147,8 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     printf("clEnqueueNDRangeKernel with datasize %d\n",datasize);
     kl_info.ke.exec = cl_enqueue_nd_range_kernel(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.platform_pos, datasize,kl_info.ke.write.back());//kl_info.ke.write.back());
     
-   clFlush(cmd_q);
-   
+    clFlush(cmd_q);
+    printf("clEnqueueReadBuffer with datasize %d\n",datasize);
     kl_info.kex.read_start_h=get_current_time();
     kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec,kl_info.platform_pos);
     
@@ -2088,8 +2157,9 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     // kl_info.ke.barrier_read = barrier_ev_read;
    clFlush(cmd_q);
     //status = clSetEventCallback(kl_info.ke.read[kl_info.ke.read.size()-1], CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);
-    
+    printf("clSetEventCallback %d\n",datasize);
     status = clSetEventCallback(kl_info.ke.read.back(), CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);    
+    printf("Settting event callback done\n");
     clFlush(cmd_q);
 
     gettimeofday(&end,NULL);
@@ -2248,7 +2318,7 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
         fprintf(fp,"cl_create_buffers: END: %llu \n",get_current_time());
         fflush(fp);
     }
-
+    printf("clCreateBuffers with %lu",ki.inputBuffers.size() + ki.outputBuffers.size());
 }
 void cl_set_kernel_args(KernelInfo& ki, std::vector<cl_mem>& io, int object,unsigned int datasize) {
     
@@ -2388,7 +2458,7 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
         //fprintf(fp,"\ncl_enqueue_write_buffers: finishEvent%d.write: %u - %u",i,&finish[i],finish[i] );
         
     }
-
+    printf("clEnqueueWriteBuffer with %d buffers",num_buffers);
     if (LOG_LEVEL>=1){
         fprintf(fp,"cl_enqueue_write_buffers: END: %llu \n",get_current_time());
         fflush(fp);
@@ -2481,13 +2551,14 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
     if(ki.configured[dtype])
         for(int i =0;i<ki.outputBuffers.size();i++)
         {
-            if(!std::get<3>(ki.inputBuffers.at(i)))
+            if(!std::get<3>(ki.outputBuffers.at(i)))
                 num_buffers+=1;
         }
     else
     {
         num_buffers = ki.noOutputBuffers;
     }
+    printf("Read Event for %d buffers\n",num_buffers);
     std::vector<cl_event> finish(num_buffers);
     cl_int status;
     int counter = 0;
@@ -2626,7 +2697,27 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     unsigned long long int local_d=kl->task->deadline;//+ncb_buffer+time_buffer+(unsigned long long int)(time_factor*kl->task->exTime);
     // printf("local_d-%d: %llu ncb_buffer: %llu deadline:%llu \n",kl->task->traceID,local_d,ncb_buffer,kl->task->deadline)  ;  
 
-    
+    std::string name; 
+    printf("Callback traceid %d\n",kl->task->traceID);
+    std::unique_lock<std::mutex> lk(run_kernel_lock);
+    num_profile_kernels++;
+    if(num_profile_kernels == 2)
+        processed = true;
+    lk.unlock();
+    if(processed)
+        cv.notify_one();
+    if(kl->task->traceID!=-1)
+    {
+        name=kl->task->taskID.c_str();
+        kl->finished=1;
+        printf("Resetting profilekernel_start to 1\n");
+    }
+    else
+    {
+        name="micro_kernel";  
+        kl->finished=1; 
+        printf("Resetting microkernel_start to 1\n");
+    }
     if(kl->task->traceID!=-1)
     {   
         freqChange_time=get_current_time();  
@@ -2911,11 +3002,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     else
         notify_cb_buffer_g+=get_current_time()-end;
 
-    std::string name; 
-    if(kl->task->traceID!=-1)
-        name=kl->task->taskID.c_str();
-    else
-        name="micro_kernel";   
+
     printf("******Kernel Stat: %s %u %d-%d %u %llu %llu %llu %llu *******\n",name.c_str(),kl->size,kl->platform_pos,kl->device_pos,kl->frequency,timing,kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
     
     kl->kex.notify_callback_rel_end_time=get_current_time();        
@@ -2958,6 +3045,7 @@ void dump_profile_statistics(KernelLaunchInfo *kl,std::ofstream &ofs)
     std::string timing_information = "";
     KernelExecutionInfo kex = kl->kex;
     KernelEvents ke = kl->ke;
+    cout<<"KERNEL EVENTS : write size " <<ke.write.size() << "read size " <<ke.read.size()<<"\n";
     timing_information += ke.dump_times();
     stringstream ss;
     ss <<"getimage_time:" << kex.get_image_end_time - kex.get_image_start_time << ";host_time:" << kex.rel_end_time-kex.rel_start_time <<"\n";
@@ -4616,6 +4704,8 @@ void release_kernel_events(KernelEvents& k) {
     {
         clReleaseEvent(k.read[i]);
     }
+    k.write.clear();
+    k.read.clear();
     return;
 }
 

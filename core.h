@@ -32,7 +32,7 @@
 #include <iostream>
 #include <streambuf>
 #include <mutex>  
-
+#include <condition_variable>
 
 
 // OpenCL includes
@@ -45,6 +45,8 @@
 // Custom includes
 #include "string.h"
 #define PROFILE_ITERATIONS 2
+int microkernel_start=0;
+int profilekernel_start=0;
 int STR_LENGTH; 
 int NumOfJobs;
 int NumCoresPerDevice;
@@ -83,6 +85,7 @@ int nKernels=0;
 int nTasks=0;
 int SchedulerFinish=0;
 int stop_scheduler=0;
+int num_profile_kernels=0; // required for profiling scripts
 unsigned long long int safe_duration=0;
 unsigned long long int notify_cb_buffer_c=0;
 unsigned long long int notify_cb_buffer_g=0; 
@@ -91,7 +94,12 @@ unsigned long long int hyper_period;
 std::mutex mtx_rblock;
 std::mutex mtx_nlock;
 std::mutex mtx_devlock;
+std::mutex mtx_kernel_finished;
+std::mutex run_kernel_lock;
 std::string outputbuffer;
+
+bool processed = false;
+std::condition_variable cv;
 /**************************** Helper functions ****************************************/
 
 //OpenCL Error Logs
@@ -354,7 +362,7 @@ typedef struct _event
     std::string dump_time()
     {
        std::stringstream ss;
-       ss << this->type << this->get_queue_submit() <<";"<< this->get_submit_start()<< ";"<<this->get_start_end()<<";";
+       ss << this->type <<":"<< this->get_queue_submit() <<";"<< this->get_submit_start()<< ";"<<this->get_start_end()<<";";
        return ss.str();
 
     }
@@ -540,7 +548,7 @@ typedef struct _kernellaunchinfo{
     float expected_speed;
     // float measured_speed;
     float last_speedup;
-    
+    int finished = 0;
 } KernelLaunchInfo;
 
 typedef struct _DAGtime
