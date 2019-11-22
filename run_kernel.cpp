@@ -5,12 +5,13 @@ int main(int argc, char const *argv[])
     load_config("./configure_input.txt");
     const char* tok =parse_file_name(argv[1]);
     char argv2[100];
-    strcpy(argv2,"dag_history/dag_history_"); 
+    strcpy(argv2,"dag_history/dag_history_history"); 
     strcat(argv2,tok);
     strcat(argv2,".stats");
     printf("\nInput read from file: %s %s\n",argv[1],argv2);
-    read_dag_file(argv2); 
+    read_dag_file(argv[5]); 
     // printf("Input read_dag_file done\n");
+    
     read_dag_structure("./dag_structure/");
     // printf("Input read_dag_structure done\n");
     /*create Output dump file*/
@@ -36,7 +37,7 @@ int main(int argc, char const *argv[])
     kernel_cl_queue[filename]=make_pair(cl_info_0,cl_info_1);
     
     int profile_trace_value = atoi(argv[3]);
-    int micro_kernel_device = atoi(argv[4]);
+    micro_kernel_device = atoi(argv[4]);
     
     // printf("build_all_kernel_objects \n");
 
@@ -82,7 +83,7 @@ int main(int argc, char const *argv[])
         
         if(monitorTemp==1)
           pthread_create(&thread_temperature_monitor, NULL, temperature_monitor, NULL);          
-        pthread_create(&thread_scheduler, &attr, run_kernel, &traceCount);  
+        pthread_create(&thread_scheduler, &attr, run_kernel, &profile_trace_value);  
                 
         
         pthread_join(thread_scheduler, NULL);

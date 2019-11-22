@@ -1167,7 +1167,7 @@ void *run_kernel(void *vargp){
     
     (param.sched_priority)++;
     rc = pthread_attr_setschedparam (&attr, &param);
-    int taskcount=*((int *) vargp);
+    int traceID=*((int *) vargp);
     printf("\nrun_kernel %lu on core %d \n",pthread_self(),sched_getcpu());
 
     // KernelLaunchInfo *kl_info = (KernelLaunchInfo *) vargp;
@@ -1179,7 +1179,7 @@ void *run_kernel(void *vargp){
     if (LOG_SCHEDULER >=1)
             fprintf(fp,"\n\nrun_kernel: BEGIN: %llu \n",get_current_time());
 
-    std::string filename = "./profile_statistics/trace_"+to_string(kl_info->task->traceID)+".stats";
+    std::string filename = "./profile_statistics/trace_"+to_string(traceID)+".stats";
     std::string microkernel_filename = "./profile_statistics/microkernel_for_trace_"+to_string(kl_info->task->traceID)+".stats";
     ofstream ofs, ofs_microkernel;
     ofs.open(filename,std::ios_base::app|std::ios_base::out);
@@ -1236,7 +1236,7 @@ void *run_kernel(void *vargp){
 
     ofs.close();
     ofs_microkernel.close();
-    // printf("taskcount: %d, no_micro_kernel: %d, nTasks: %d\n",taskcount,no_micro_kernel,nTasks);
+    
 
     if(get_current_time()<hyper_period)
         std::this_thread::sleep_for(std::chrono::microseconds(hyper_period-get_current_time()));
