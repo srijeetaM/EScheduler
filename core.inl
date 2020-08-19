@@ -3,7 +3,7 @@
 using namespace std;
 unsigned long long int write_buffers_begin;
 //Global data structures
-FILE *fp,*t_result,*tmp_result,*m_result,*r_result;
+FILE *fp,*t_result,*tmp_result,*m_result,*r_result,*ts_result;
 KernelLaunchInfo* micro_kernel_klinfo;
 std::map<int,JobInfo*> jobMap;
 std::map<int,DAGInfo*> dagMap;
@@ -13,13 +13,18 @@ std::map<std::string,pair<KernelInfo*,KernelInfo*>> kernel_cl_queue;
 std::vector<std::vector< int>> nodes_matrix;//If that particular node of each dag has finished
 std::vector<pair <int, std::string>> trace_queue;
 std::vector <std::vector<std::vector<KernelLaunchInfo* >>> ready_buffer(NumOfPlatforms);
+//std::vector<KernelLaunchInfo* > ready_buffer;
 std::vector <std::vector<std::vector<KernelLaunchInfo* >>> task_queue(NumOfPlatforms);
 std::vector<std::vector<DeviceSpecification*>> deviceSpec(NumOfPlatforms);
 std::vector< std::vector<cl_device_id> > all_devices(NumOfPlatforms) ;
 std::vector< std::vector<cl_command_queue> > all_cmd_qs(NumOfPlatforms);
 std::vector<cl_context> all_ctxs(NumOfPlatforms);
 std::vector< std::vector<int>> deviceAvailability(NumOfPlatforms);
+std::vector<std::vector<bool>> dev_available(NumOfPlatforms);
+std::condition_variable cv_dev_available;
+std::condition_variable cv_rbuffer_available;
 std::vector<std::vector<DAGTime*>> DAGtimeMatrix;
+int taskcount;
 
 
 void load_config(std::string filename)
@@ -58,10 +63,10 @@ void load_config(std::string filename)
                 G_BIG=atoi(value.c_str());
             else if(name.compare("G_LITTLE")==0)
                 G_LITTLE=atoi(value.c_str());
-            else if(name.compare("NumNodes_0")==0)
-                 NumNodes_0=atoi(value.c_str());
-            else if(name.compare("NumNodes_1")==0)
-                 NumNodes_1=atoi(value.c_str());
+            // else if(name.compare("NumNodes_0")==0)
+            //      NumNodes_0=atoi(value.c_str());
+            // else if(name.compare("NumNodes_1")==0)
+            //      NumNodes_1=atoi(value.c_str());
             else if(name.compare("TempInterval")==0)
                 TempInterval=atoi(value.c_str());
             else if(name.compare("numOfHyperperiod")==0)
@@ -74,22 +79,20 @@ void load_config(std::string filename)
                 LOG_PROFILE=atoi(value.c_str());
             else if(name.compare("POLE")==0)
                 POLE=atof(value.c_str());
-            else if(name.compare("MODE")==0)
-                MODE=atoi(value.c_str());
-            else if(name.compare("micro_kernel_device")==0)
-                micro_kernel_device=atoi(value.c_str());
+            else if(name.compare("CONTROLLER_MODE")==0)
+                CONTROLLER_MODE=atoi(value.c_str());
+            // else if(name.compare("micro_kernel_device")==0)
+            //     micro_kernel_device=atoi(value.c_str());
             else if(name.compare("time_buffer")==0)
                 time_buffer=atoi(value.c_str());
             else if(name.compare("FACTOR")==0)
                 FACTOR=atoi(value.c_str());
-            else if(name.compare("SAFE")==0)
+            else if(name.compare("SAFE_MODE")==0)
                 SAFE=atoi(value.c_str());
             else if(name.compare("isProfileMode")==0)
                 isProfileMode=atoi(value.c_str());
             else if(name.compare("monitorTemp")==0)
                 monitorTemp=atoi(value.c_str());
-            else if(name.compare("controlerTemp")==0)
-                controlerTemp=atoi(value.c_str());
             else if(name.compare("generatePlot")==0)
                 generatePlot=atoi(value.c_str());
             else if(name.compare("RACE_TO_IDLE")==0)
@@ -289,6 +292,18 @@ const char* parse_file_name(const char* filename)
     return tok;
 }
 
+void build_kernel_object(const char* filename)
+{
+    // printf("\n%s", filename);
+    KernelInfo *cl_info_0,*cl_info_1;
+    cl_info_0=new KernelInfo();   
+    cl_info_1=new KernelInfo();    
+    build_kernel_from_info(*cl_info_0, filename, all_devices, all_ctxs);//Build opencl kernel
+    build_kernel_from_info(*cl_info_1, filename, all_devices, all_ctxs);
+    kernel_cl_queue[filename]=make_pair(cl_info_0,cl_info_1);
+    printf("build_kernel_object filename: %s\n",filename);
+}
+
 void build_all_kernel_objects(const char* directory){
 
     DIR* FD;
@@ -350,7 +365,7 @@ int read_trace_file(const char* filename)
 
     if (!file) 
     {
-        fprintf(stderr, "Can't open input file. trace file\n");
+        fprintf(stderr, "Can't open input file. trace file: %s\n",filename);
         exit(EXIT_FAILURE);
     }
 
@@ -384,7 +399,7 @@ void create_output_file(const char* filename )
     
     char op_file1[STR_LENGTH]; 
     sprintf(op_file1,"./output/time/time_MM_%s",ctime(&t) );
-    char *q = op_file;
+    char *q = op_file1;
     for (; *q; ++q)
     {
         if (*q == ' ' || *q == '\n')
@@ -395,7 +410,7 @@ void create_output_file(const char* filename )
 
     char op_file2[STR_LENGTH]; 
     sprintf(op_file2,"./output/temperature/tmp_MM_%s",ctime(&t));
-    char *r = op_file;
+    char *r = op_file2;
     for (; *r; ++r)
     {
         if (*r == ' ' || *r == '\n')
@@ -420,14 +435,25 @@ void create_output_file(const char* filename )
     char op_file3[STR_LENGTH]; 
     sprintf(op_file3,"./output/task_set/task_set_history_%s.stats",tok );
     // sprintf(op_file3,"./output/timestamp/timestamp_%s",ctime(&t) );
-    char *s = op_file;
+    char *s = op_file3;
     for (; *s; ++s)
     {
         if (*s == ' ' || *s == '\n')
               *s = '_';
     }
     m_result=fopen(op_file3, "w+");
-    printf("timestamp dumped at %s\n",op_file3);
+
+    // char op_file5[STR_LENGTH]; 
+    // sprintf(op_file5,"./output/timestamp/ts_%s.stats",tok );
+    // // sprintf(op_file3,"./output/timestamp/timestamp_%s",ctime(&t) );
+    // char *s = op_file5;
+    // for (; *s; ++s)
+    // {
+    //     if (*s == ' ' || *s == '\n')
+    //           *s = '_';
+    // }
+    // ts_result=fopen(op_file5, "w+");
+    // printf("timestamp dumped at %s\n",op_file5);
 
 
 }
@@ -474,6 +500,7 @@ void get_all_devices()
                 ready_buffer[0].push_back(klg);
                 task_queue[0].push_back(w0);
                 deviceAvailability[0].push_back(1);
+                dev_available[0].push_back(true);
             }
         }
         else if(device_type == CL_DEVICE_TYPE_CPU)
@@ -488,13 +515,14 @@ void get_all_devices()
             err = clCreateSubDevices(devices[0],properties,num_sub_devices*sizeof(cl_device_id),sub_devices,NULL);    
             int count=0;
             for(cl_device_id d:sub_devices)
-            {   if(count>=NumofCPUs/2)
+            {   if(count>=(NumofCPUs/NumCoresPerDevice)/2)
                 {   all_devices[1].push_back(d);
                     std::vector<KernelLaunchInfo*> klc;
                     std::vector<KernelLaunchInfo*> w1;
                     ready_buffer[1].push_back(klc);
                     task_queue[1].push_back(w1);
                     deviceAvailability[1].push_back(1);
+                    dev_available[1].push_back(true);
                 }
                 count++;
             }
@@ -527,18 +555,19 @@ void reset_kl_info()
         }
         klinfo->offset = 0;
         klinfo->priority=0;
-        //reset dagtimematrix
-        for(int i=0;i<DAGtimeMatrix.size();i++)
-        {
-            for(int j=0;j<DAGtimeMatrix[i].size();j++)
-            {
-                DAGtimeMatrix[i][j]->safe_mode=0;
-                DAGtimeMatrix[i][j]->deadlineViolated=0;
-            }
-        }
+        
         printf("reset: %s - %d size %u offset %u \n",klinfo->task->taskID.c_str(),klinfo->queued,klinfo->size,klinfo->offset);
         klinfo->reset=1;
         
+    }
+    //reset dagtimematrix
+    for(int i=0;i<DAGtimeMatrix.size();i++)
+    {
+        for(int j=0;j<DAGtimeMatrix[i].size();j++)
+        {
+            DAGtimeMatrix[i][j]->safe_mode=0;
+            DAGtimeMatrix[i][j]->deadlineViolated=0;
+        }
     }
 }
 
@@ -563,17 +592,18 @@ void reset_launch_info()
             }
             klinfo->offset =0;
             klinfo->priority=0;
-            //reset dagtimematrix
-            for(int i=0;i<DAGtimeMatrix.size();i++)
-            {
-                for(int j=0;j<DAGtimeMatrix[i].size();j++)
-                {
-                    DAGtimeMatrix[i][j]->safe_mode=0;
-                    DAGtimeMatrix[i][j]->deadlineViolated=0;
-                }
-            }
+            
             printf("reset: %s - %d size %u offset %u \n",klinfo->task->taskID.c_str(),klinfo->queued,klinfo->size,klinfo->offset);
             klinfo->reset=1;
+        }
+    }
+    //reset dagtimematrix
+    for(int i=0;i<DAGtimeMatrix.size();i++)
+    {
+        for(int j=0;j<DAGtimeMatrix[i].size();j++)
+        {
+            DAGtimeMatrix[i][j]->safe_mode=0;
+            DAGtimeMatrix[i][j]->deadlineViolated=0;
         }
     }
 }
@@ -753,11 +783,12 @@ void initialise_nodes_matrix()
         job_id = dag_to_job_id(d).first;
         nodes_matrix.push_back(std::vector<int>());
         // ######################numOfNodes is set to 1 for independent tasks##################
-        int numberOfNodes;
-        if(isProfileMode==1)
-            numberOfNodes=1;
-        else
-            numberOfNodes=(job_id%2==0?NumNodes_0:NumNodes_1);
+        int numberOfNodes=1;
+        if(isProfileMode!=1)
+        {   auto it = jobMap.find(job_id);
+            if(it != jobMap.end())
+                numberOfNodes=it->second->numOfNodes;            
+        }
         for (int k=0;k<numberOfNodes;k++) 
           nodes_matrix[d].push_back(0);        
     } 
@@ -812,7 +843,6 @@ int parse_trace_input(int* index)
 
     std::string file_name = std::string("./tinfo/DAG_");    
     file_name = file_name + std::string(tok);
-    std:;cout <<"Parsing filename "<<file_name;
     int job=atoi(tok);
     //std::string unique_task_id = "D" + std::string(tok);
     //unique_task_id=unique_task_id+"-N";
@@ -824,7 +854,8 @@ int parse_trace_input(int* index)
     tok = strtok(0, ","); //fused variant
     file_name = file_name + ":" + std::string(tok);
     //unique_task_id=unique_task_id+std::string(tok);
-    // printf("File Name: %s \n",file_name.c_str());
+    // printf("File Name: %s \n",file_name.c_str());    
+    std::cout <<"Parsing filename "<<file_name;
     std::vector<int> nodes;
     if(atoi(tok)!=-1)
     {
@@ -938,13 +969,16 @@ int parse_trace_input(int* index)
     launch_info->size = cl_info_0->globalWorkSize[0]*cl_info_0->globalWorkSize[1]*cl_info_0->globalWorkSize[2];
     //launch_info->size = C_SZ;
     launch_info->offset =0;
+    launch_info->released_b=0;
+    launch_info->released_b=0;
     // printf("sz; %d off: %d\n",launch_info->size,launch_info->offset);
     // launch_info->finished =1;
     //launch_info->frequency=deviceSpec[launch_info->device_index].device_config[deviceSpec[launch_info->device_index].device_config.size() / 2].frequency;
     launch_info->frequency=(unsigned int)freq;
-    launch_info->control_mode=MODE;
+    launch_info->control_mode=CONTROLLER_MODE;
     // printf("%u",launch_info->frequency);
-    DAGtimeMatrix[job][inst]->klinfo=launch_info;
+    if (std::find(nodes.begin(), nodes.end(), 0) != nodes.end())
+        DAGtimeMatrix[job][inst]->klinfo=launch_info;
     // DAGtimeMatrix[job][inst]->device=device;    
 
     // std::string task_name=std::to_string(task_info->dagInfo->globalDAGID)+"-";
@@ -964,9 +998,9 @@ int parse_trace_input(int* index)
     if(deps.size()==0)
     {   
         // printf("\narrivaltime job %d instance %d %llu",task_info->dagInfo->jobID,task_info->dagInfo->instanceID,DAGtimeMatrix[task_info->dagInfo->jobID][task_info->dagInfo->instanceID]->arrivalTime)   ;  
-        // if(DAGtimeMatrix[task_info->dagInfo->jobID][task_info->dagInfo->instanceID]->arrivalTime==0)
+        //if(DAGtimeMatrix[task_info->dagInfo->jobID][task_info->dagInfo->instanceID]->arrivalTime==0)
         //     ready_buffer[platform][device].push_back(launch_info); // populate the task-device queue with the index of cl_info
-        // else    
+        //else    
             task_queue[platform][device].push_back(launch_info);
     
     }
@@ -1011,8 +1045,9 @@ void populate_task_queue()
         parse_trace_input(index);     
     } 
     // printf("parse_trace_input end\n");
-    printf("size of taskQueue: %lu-%lu:%lu",task_queue[0][0].size(),task_queue[0][1].size(),task_queue[1][0].size());
     initialise_nodes_matrix();
+    printf("\nsize of taskQueue: %lu-%lu:%lu\n",task_queue[0][0].size(),task_queue[0][1].size(),task_queue[1][0].size());
+    
     // printf("initialise_nodes_matrix\n");
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"populate_task_queue: END\n");
@@ -1246,12 +1281,10 @@ void *run_kernel(void *vargp){
         printf("Finishing iteration %d\n",i);
         processed = false;
            
-    }
+    }    
     
-    release_buffers(kl_info->io);
-    release_buffers(micro_kernel_klinfo->io);
-    release_host_arrays(kl_info->task->data);
-    release_host_arrays(micro_kernel_klinfo->task->data);
+    // release_buffers(micro_kernel_klinfo->io);
+    // release_host_arrays(micro_kernel_klinfo->task->data);
 
     ofs.close();
     ofs_microkernel.close();
@@ -1269,7 +1302,7 @@ void *run_kernel(void *vargp){
 
 
 void *run_scheduler(void *vargp){  
-    cpu_set_t cpuset;
+      cpu_set_t cpuset;
     pthread_t thread_id_scheduler = pthread_self(); 
     CPU_ZERO(&cpuset);
     CPU_SET(3, &cpuset);    
@@ -1277,36 +1310,143 @@ void *run_scheduler(void *vargp){
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_RR);
     pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
-    printf("\nrun_scheduler %lu on core %d \n",pthread_self(),sched_getcpu());
+    printf("\nrun_scheduler %u on core %d \n",pthread_self(),sched_getcpu());
 
-    int taskcount=*((int *) vargp);
+    struct sched_param param;
+    // params.sched_priority = sched_get_priority_max(SCHED_RR);
+    // pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
+    pthread_attr_t attr;
+    int rc = pthread_attr_init (&attr);    
+    (param.sched_priority)++;
+    rc = pthread_attr_setschedparam (&attr, &param);
+
+    taskcount=*((int *) vargp);
+
+
     if (LOG_SCHEDULER >=1)
             fprintf(fp,"\n\nrun_scheduler: BEGIN: %llu \n",get_current_time());
 
-    if(micro_kernel_device!=-1)
-        dispatch(*micro_kernel_klinfo);
-   
-    while(nTasks-no_micro_kernel<taskcount){
+    for(int i = 0 ;i<numOfHyperperiod; i++)
+    {  
 
-        if(micro_kernel_device!=-1 && deviceAvailability[micro_kernel_device][0]==1) 
-            dispatch(*micro_kernel_klinfo);
+        while(nTasks<taskcount){
 
-        // printf("RUN SCHEDULER ITERATION\n");
-        dispatch_from_queue();  
+            dispatch_from_queue();  
+
+        }
+        if(get_current_time()<hyper_period)
+            std::this_thread::sleep_for(std::chrono::microseconds(hyper_period-get_current_time()));
 
     }
-    
     // printf("taskcount: %d, no_micro_kernel: %d, nTasks: %d\n",taskcount,no_micro_kernel,nTasks);
 
-    if(get_current_time()<hyper_period)
-        std::this_thread::sleep_for(std::chrono::microseconds(hyper_period-get_current_time()));
-
+    
     if (LOG_SCHEDULER >=1){
         fprintf(fp,"run_scheduler: END: %llu \n",get_current_time());
         fflush(fp);
     }
 }
 
+bool is_dev_available()
+{
+    if(nTasks==taskcount)
+        return true;
+    for(int p=0;p<NumOfPlatforms;p++)
+    {
+        for(int d=0;d<all_devices[p].size();d++)
+        {  
+            //printf("is_dev_available p-d: %d %d, dev_available[p][d]: %d , ready_buffer[p][d].size(): %d \n",p,d,(dev_available[p][d]?1:0),ready_buffer[p][d].size());
+            if(dev_available[p][d]==true && ready_buffer[p][d].size()>0 )
+            {    
+                //printf("is_dev_available is true \n");
+                return true;
+            }
+            //printf("is_dev_available is false: %d %d \n",p,d);
+        }
+    }
+    return false;
+}
+
+std::pair<int, int> empty_device()
+{
+    for(int p=0;p<NumOfPlatforms;p++)
+    {
+        for(int d=0;d<all_devices[p].size();d++)
+        {  
+            if(dev_available[p][d]==true  )
+                return make_pair(p,d);
+        }
+    }
+    return make_pair(-1,-1);
+}
+
+std::vector<std::pair<int, int>> ready_buffer_available()
+{
+    std::vector<std::pair<int, int>> available_ready_buffers;
+    for(int p=0;p<NumOfPlatforms;p++)
+    {
+        for(int d=0;d<all_devices[p].size();d++)
+        {  
+            if(ready_buffer[p][d].size()>0)
+                available_ready_buffers.push_back(make_pair(p,d));
+        }
+    }
+    return available_ready_buffers;
+}
+
+
+void dispatch_from_queue( )
+{
+    if (LOG_SCHEDULER >=1)
+        fprintf(fp,"dispatch_from_queue: BEGIN: %llu \n",get_current_time());
+    
+    // printf("dispatch_from_queue: BEGIN: %llu \n",get_current_time());
+
+    printf("dispatch_from_queue: BEGIN: %llu \n",get_current_time());
+    
+
+    std::vector<std::pair<int, int>> r_buffer= ready_buffer_available(); 
+    printf("dispatch_from_queue: ready_buffer_available size: %d \n",ready_buffer_available().size());
+
+    if(r_buffer.size()>0)
+    {
+        for(int i=0;i<r_buffer.size();i++)
+        {
+            int p=r_buffer[i].first;
+            int d=r_buffer[i].second;
+        
+    
+            if(dev_available[p][d])
+            {    
+                
+                printf("ready bufefr size: %d p: %d d: %d\n",ready_buffer[p][d].size(),p,d);
+                fprintf(fp,"\tDispatching from dispatch_from_queue_%d-%d: %d %d\n",p,d,ready_buffer[p][d].size(),task_queue[p][d].size());
+                printf("deviceAvailability %d %d %d rbsize %d wqsize %d \n",p,d,deviceAvailability[p][d],ready_buffer[p][d].size(),task_queue[p][d].size());
+
+                mtx_rblock.lock();
+                KernelLaunchInfo* kl_info=ready_buffer[p][d][0];
+                ready_buffer[p][d].erase(ready_buffer[p][d].begin()+0);
+                mtx_rblock.unlock();
+                
+                // rblock=0;
+                //printf("\tdispatch_from_queue: Dispatching...");
+                print_launch_info(*kl_info);
+                dispatch(*kl_info);                
+            }
+        }
+    }
+    std::unique_lock<std::mutex> lk(run_scheduler_lock);
+    cv_dev_available.wait(lk, []{return is_dev_available();});
+    //cv_rbuffer_available.wait(lk, []{return ready_buffer_available().size()>0;});
+    printf("Conditional variable unlocked : %llu \n",get_current_time());
+
+    if (LOG_SCHEDULER >=1){
+        fprintf(fp,"dispatch_from_queue: END: %llu \n",get_current_time());
+        fflush(fp);
+    }
+}
+
+/*
 void dispatch_from_queue()
 {
     if (LOG_SCHEDULER >=1)
@@ -1344,8 +1484,142 @@ void dispatch_from_queue()
         fprintf(fp,"dispatch_from_queue: END: %llu \n",get_current_time());
         fflush(fp);
     }
+}*/
+
+
+
+
+void *taskArrivalUpdation(void *vargp){
+    if (LOG_SCHEDULER >=1){
+        fprintf(fp,"taskArrivalUpdation: BEGIN: %llu \n",get_current_time());
+        fflush(fp);
+    }
+    cpu_set_t cpuset;
+    pthread_t thread_id_scheduler = pthread_self(); 
+    CPU_ZERO(&cpuset);
+    CPU_SET(1, &cpuset);    
+    int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
+    int t=0;
+
+    for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr) 
+    { 
+        KernelLaunchInfo* kl_info = itr->second ;
+        unsigned long long int arrival_time =kl_info->task->arrival;
+        if(get_current_time()<arrival_time)
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(arrival_time-get_current_time()));
+        }
+        
+    } 
+
+
+
+    if (LOG_SCHEDULER >=1)
+    {
+        fprintf(fp,"taskArrivalUpdation: END: %llu \n",get_current_time());
+        fflush(fp);
+    }
+
 }
 
+void *taskToReadyB(void *vargp){
+
+    if (LOG_SCHEDULER >=1){
+        fprintf(fp,"taskToReadyB: BEGIN: %llu \n",get_current_time());
+        fflush(fp);
+    }
+    cpu_set_t cpuset;
+    pthread_t thread_id_scheduler = pthread_self(); 
+    CPU_ZERO(&cpuset);
+    CPU_SET(1, &cpuset);    
+    int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
+    //printf("\ntaskToReadyB %u thread on core %d \n",pthread_self(),sched_getcpu());
+
+    for (auto element : dagMap) 
+    {
+        int gdag = element.first;
+        DAGInfo* dinfo = element.second;
+        int job= dinfo->jobID;
+        int instance= dinfo->instanceID;
+        unsigned long long int arrival_time = DAGtimeMatrix[job][instance]->arrivalTime;
+        KernelLaunchInfo* klinfo;
+        std::map<pair<int, int>,KernelLaunchInfo*>::iterator iter;
+        iter = taskMap.find(make_pair(gdag,0));
+        if(iter != taskMap.end())
+            klinfo = iter->second;
+        else
+        {
+            printf("taskToReadyB: Can not find global dag %d in TaskMap\n",gdag);
+        }    
+
+        if(get_current_time()<arrival_time)
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(arrival_time-get_current_time()));
+        }
+    
+        if(klinfo->queued==0 && (klinfo->control_mode!=3 || (klinfo->control_mode==3 && get_current_time()>=klinfo->start)))
+        {   
+            fprintf(fp,"\ttaskToReadyB: curTime: %llu ArrivalTime: %llu\n",get_current_time(),DAGtimeMatrix[job][instance]->arrivalTime);
+            printf("\t#######################taskToReadyB: curTime: %llu ArrivalTime: %llu\n",get_current_time(),DAGtimeMatrix[job][instance]->arrivalTime);
+            mtx_rblock.lock();                 
+            klinfo->queued=1;
+            ready_buffer[klinfo->platform_pos][klinfo->device_pos].push_back(klinfo);   
+            mtx_rblock.unlock();
+        }  
+    }
+
+    /*
+    while(get_current_time()<=hyper_period)
+    {
+        for(int p=0;p<NumOfPlatforms;p++)
+        {
+            for(int d=0;d<all_devices[p].size();d++)
+            { 
+                int pos_index=-1; 
+                // printf("\ntask_queue[%d][%d].size(): %d\n",p,d,task_queue[p][d].size());
+                for(int q=0;q<task_queue[p][d].size();q++)
+                {        
+                    int job = task_queue[p][d][q]->task->dagInfo->jobID;
+                    int globalDag = task_queue[p][d][q]->task->dagInfo->globalDAGID;
+                    int instance = task_queue[p][d][q]->task->dagInfo->instanceID;
+                    // printf("\njob %d globalDag %d instance %d",job,globalDag,instance);
+                    if(task_queue[p][d][q]->queued==0 && get_current_time() >= DAGtimeMatrix[job][instance]->arrivalTime && (task_queue[p][d][q]->control_mode!=3 || (task_queue[p][d][q]->control_mode==3 && get_current_time()>=task_queue[p][d][q]->start)))
+                    {   
+                        // printf("\ttaskToReadyB: pos_index: %d curTime: %llu ArrivalTime: %llu\n",pos_index,get_current_time(),DAGtimeMatrix[job][instance]->arrivalTime);
+                        fprintf(fp,"\ttaskToReadyB: pos_index: %d curTime: %llu ArrivalTime: %llu\n",q,get_current_time(),DAGtimeMatrix[job][instance]->arrivalTime);
+
+                        pos_index=q;                       
+                        
+                        break;
+                    }
+                }  
+                
+                if(pos_index!=-1)  
+                {
+                    // while (test_and_set(&rblock,0, 1))
+                    //             ;
+                    mtx_rblock.lock();                 
+                    // fprintf(fp,"\ttaskToReadyB: Moving from waiting to ready queue_%d-%d: %d %d (%d)\n",p,d,ready_buffer[p][d].size(),task_queue[p][d].size(),pos_index);
+                    // printf("\ttaskToReadyB: %d-%d: pos_index: %d curTime: %llu size w%d r%d \n",p,d,pos_index,get_current_time(),task_queue[p][d].size(),ready_buffer[p][d].size());
+                    task_queue[p][d][pos_index]->queued=1;
+                    ready_buffer[p][d].push_back(task_queue[p][d][pos_index]);   
+                    // task_queue[p][d].erase(task_queue[p][d].begin()+pos_index); 
+                    mtx_rblock.unlock();                    
+                    // rblock=0;        
+                }
+            }
+        }
+    }
+    */
+    if (LOG_SCHEDULER >=1){
+        fprintf(fp,"taskToReadyB: END: %llu \n",get_current_time());
+        printf("taskToReadyB: END: %llu \n",get_current_time());
+        fflush(fp);
+    }
+
+}
+
+/*
 void *taskToReadyB(void *vargp){
 
     if (LOG_SCHEDULER >=1){
@@ -1407,6 +1681,8 @@ void *taskToReadyB(void *vargp){
     }
 
 }
+*/
+
 
 
 int chunk_factor(KernelLaunchInfo* kl)
@@ -1475,9 +1751,10 @@ std::vector<cl_program> build_kernel(KernelInfo& ki,  std::vector<std::vector<cl
     std::string kernel_file_bin_gpu = "src/"+kernel_file.erase(ki.kernelSource.length()-3)+"_gpu.bin";
     if(!file_exists(kernel_file_bin_cpu) && !file_exists(kernel_file_bin_gpu))
     {
-        printf("Trying to compile program %s\n",ki.kernelSource.c_str());
+        
         programs[PLATFORM_GPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_GPU], PLATFORM_GPU);
         programs[PLATFORM_CPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_CPU],PLATFORM_CPU);
+        printf("Compiled program %s\n",ki.kernelSource.c_str());
         if (LOG_LEVEL >=1)
         {
             fprintf(fp, "\tComplied Programs: %s\n",ki.kernelSource.c_str());
@@ -1798,8 +2075,9 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
 
     if (LOG_LEVEL >=1)
     {    
-        fprintf(fp,"assign_kernel_info: END \n");
+        fprintf(fp,"assign_kernel_info: END \n");        
     }
+    printf("assign_kernel_info: END \n");
     return kernel_info;
 }
 
@@ -2065,6 +2343,8 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     //         ;  
     mtx_devlock.lock();         
     deviceAvailability[kl_info.platform_pos][kl_info.device_pos]=0;
+    dev_available[kl_info.platform_pos][kl_info.device_pos]=false;
+    //dev_freed=false;
     mtx_devlock.unlock();    
     // devlock=0;
 
@@ -2131,7 +2411,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     
     if(kl_info.priority==0)
         change_frequency(kl_info.frequency,  kl_info.platform_pos,  kl_info.device_pos);
-    else if(kl_info.priority==1)
+    else if(SAFE && kl_info.priority==1)
     {   change_frequency(deviceSpec[kl_info.platform_pos][kl_info.device_pos]->highFrequencyBound, kl_info.platform_pos,  kl_info.device_pos);
         printf("\t+++SAFE MODE ON for d-%d i-%d +++\n",kl_info.task->dagInfo->jobID,kl_info.task->dagInfo->instanceID);
 
@@ -2147,7 +2427,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     KernelInfo *kernel_info = kl_info.task->kernels[index];
     PERSISTENCE_DEBUG printf("Configured kernel status: %d\n",kernel_info->configured[kl_info.platform_pos]);
     if (!kernel_info->configured[kl_info.platform_pos])
-        cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset);
+        cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset,kl_info.platform_pos);
     // printf("after create buffer\n");
 
     
@@ -2173,10 +2453,13 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     kl_info.kex.read_start_h=get_current_time();
     kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec,kl_info.platform_pos);
     
-   clFlush(cmd_q);
+   cl_int status1=clFlush(cmd_q);
     // status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->outputBuffers.size(),&(kl_info.ke.read[0]) ,&barrier_ev_read );    
     // kl_info.ke.barrier_read = barrier_ev_read;
-   clFlush(cmd_q);
+    //   if(status1==CL_SUCCESS)
+    //        printf("Command queue [%d][%d] flushed: !!\n",kl_info.platform_pos,kl_info.device_pos);
+    //    else
+    //        printf("Command queue [%d][%d] not flushed: !!\n",kl_info.platform_pos,kl_info.device_pos);
     //status = clSetEventCallback(kl_info.ke.read[kl_info.ke.read.size()-1], CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);
     PERSISTENCE_DEBUG printf("clSetEventCallback %d\n",datasize);
     status = clSetEventCallback(kl_info.ke.read.back(), CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);    
@@ -2296,7 +2579,7 @@ unsigned int calculate_op_buffer_offset(unsigned int dataoffset,int op_index,Ker
     return bufferoffset;
 }
 
-void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset) {
+void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset,int dtype) {
 
     if (LOG_LEVEL>=1)
         fprintf(fp,"cl_create_buffers: BEGIN: %llu \n",get_current_time());
@@ -2305,13 +2588,16 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
     unsigned int datasize, buffer_offset;
     cl_int status;
     
+    
     for (i = 0; i < ki.inputBuffers.size(); ++i)
     {
         PERSISTENCE_DEBUG printf("Creating input buffer\n");
         datasize=calculate_ip_buffer_size(size,i,ki);
         buffer_offset=calculate_ip_buffer_offest(dataoffset,i,ki);        
-
-        io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, datasize, NULL, &status));
+        if(dtype==PLATFORM_GPU)
+            io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, datasize, NULL, &status));
+        else
+            io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i]+ buffer_offset, &status));
         // io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY |CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR, datasize, data[i]+ buffer_offset, &status));
         // printf("cl_create_buffers:Input Data Start: %u , data: %f  ,datasize: %u, buffer_offset:%u  \n",data[i]+buffer_offset,*((float*)(data[i]+buffer_offset)),datasize,buffer_offset);
         if(LOG_LEVEL==1)
@@ -2327,8 +2613,10 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
         PERSISTENCE_DEBUG printf("Creating output buffer\n");
         datasize=calculate_op_buffer_size(size,i,ki);
         buffer_offset=calculate_op_buffer_offset(dataoffset,i,ki);   
-
-        io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, datasize, NULL, &status));
+        if(dtype==PLATFORM_GPU)
+            io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, datasize, NULL, &status));
+        else
+            io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i + ki.inputBuffers.size()]+ buffer_offset, &status));
         // io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR, datasize, data[i + ki.inputBuffers.size()]+ buffer_offset, &status));
 
         // printf("cl_create_buffers:Output Data Start: %u , data: %f  ,datasize: %u, buffer_offset:%u  \n",data[i+ ki.inputBuffers.size()]+buffer_offset,*((float*)(data[i+ ki.inputBuffers.size()]+buffer_offset)),datasize,buffer_offset);
@@ -2737,6 +3025,12 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     
     unsigned long long int end=get_current_time(); 
 
+    cpu_set_t cpuset;
+    pthread_t thread_id_scheduler = pthread_self(); 
+    CPU_ZERO(&cpuset);
+    CPU_SET(3, &cpuset);    
+    int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
+
     // struct timeval end_read;
     // gettimeofday(&end_read,NULL);       
     if (LOG_LEVEL>=1)
@@ -2757,6 +3051,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     kl->kex.turnaroundTime=timing;
 
     // printf("***********************notify_callback_start-Write_start: %llu *****************************\n",end-write_buffers_begin);
+    printf("notify_callback_update_release %lu on core %d \n",pthread_self(),sched_getcpu());
 
     if(kl->task->traceID!=-1 )
     {               
@@ -2813,26 +3108,40 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     unsigned long long int local_d=kl->task->deadline;//+ncb_buffer+time_buffer+(unsigned long long int)(time_factor*kl->task->exTime);
     // printf("local_d-%d: %llu ncb_buffer: %llu deadline:%llu \n",kl->task->traceID,local_d,ncb_buffer,kl->task->deadline)  ;  
 
+    //device available signal
+    //mtx_devlock.lock();         
+    // deviceAvailability[kl->platform_pos][kl->device_pos]=1;
+    //dev_available[kl->platform_pos][kl->device_pos]=true;
+    //dev_freed=true;
+    //mtx_devlock.unlock();
+
+    //cv_dev_available.notify_one();
+
     std::string name; 
     printf("Callback traceid %d\n",kl->task->traceID);
-    std::unique_lock<std::mutex> lk(run_kernel_lock);
-    num_profile_kernels++;
-    if(num_profile_kernels == 2)
-        processed = true;
-    lk.unlock();
-    if(processed)
-        cv.notify_one();
-    if(kl->task->traceID!=-1)
+
+    if(isProfileMode==1)
     {
-        name=kl->task->taskID.c_str();
-        kl->finished=1;
-        printf("Resetting profilekernel_start to 1\n");
-    }
-    else
-    {
-        name="micro_kernel";  
-        kl->finished=1; 
-        printf("Resetting microkernel_start to 1\n");
+        std::unique_lock<std::mutex> lk(run_kernel_lock);
+        num_profile_kernels++;
+        if(num_profile_kernels == 2)
+            processed = true;
+        lk.unlock();
+        if(processed)
+            cv.notify_one();
+        
+        if(kl->task->traceID!=-1)
+        {
+            name=kl->task->taskID.c_str();
+            kl->finished=1;
+            printf("Resetting profilekernel_start to 1\n");
+        }
+        else
+        {
+            name="micro_kernel";  
+            kl->finished=1; 
+            printf("Resetting microkernel_start to 1\n");
+        }
     }
     if(kl->task->traceID!=-1)
     {   
@@ -2841,9 +3150,11 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
         {   safe_duration+=get_current_time()-DAGtimeMatrix[kl->task->dagInfo->jobID][kl->task->dagInfo->instanceID]->startTime;
             printf("safe_duration: %llu\n",safe_duration);
         }
-        unsigned int min_freq=deviceSpec[kl->platform_pos][kl->device_pos]->lowFrequencyBound;
         if(raceToIdle)
+        {
+            unsigned int min_freq=deviceSpec[kl->platform_pos][kl->device_pos]->lowFrequencyBound;
             change_frequency(min_freq,  kl->platform_pos,  kl->device_pos);
+        }
         freqChange_time = get_current_time()-freqChange_time;
         kl->kex.frequency_change_time = freqChange_time;
         // printf("freq: %u \n",min_freq);
@@ -2952,7 +3263,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 
             AddReadyBuffer_time=get_current_time();
             childrenToReadyBuffer(*kl)  ;  
-            // printf("childrenToReadyBuffer\n");
+            printf("childrenToReadyBuffer\n");
             AddReadyBuffer_time=get_current_time()-AddReadyBuffer_time;            
 
         }
@@ -3103,10 +3414,21 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 
     // while (test_and_set(&devlock,0, 1))
     //         ;
-    mtx_devlock.lock();         
-    deviceAvailability[kl->platform_pos][kl->device_pos]=1;
-    mtx_devlock.unlock();
+    // mtx_devlock.lock();         
+    // deviceAvailability[kl->platform_pos][kl->device_pos]=1;
+    // mtx_devlock.unlock();
     // devlock=0;
+
+    // cv_dev_available.notify_one();
+
+    //device available signal
+    mtx_devlock.lock();         
+    // deviceAvailability[kl->platform_pos][kl->device_pos]=1;
+    dev_available[kl->platform_pos][kl->device_pos]=true;
+    // dev_freed=true;
+    mtx_devlock.unlock();
+    //printf("#####notify_callback_update_release: dev available updated dev_available[%d][%d]\n",kl->platform_pos,kl->device_pos,(dev_available[kl->platform_pos][kl->device_pos]?1:0));
+    cv_dev_available.notify_one();
     
     if (LOG_LEVEL>=1){
         fprintf(fp,"notify_callback_update_release: END: %llu \n",get_current_time()); 
@@ -3119,7 +3441,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
         notify_cb_buffer_g+=get_current_time()-end;
 
 
-    printf("******Kernel Stat: %s %u %d-%d %u %llu %llu %llu %llu *******\n",name.c_str(),kl->size,kl->platform_pos,kl->device_pos,kl->frequency,timing,kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
+    printf("******Kernel Stat: %d %u %d-%d %u %llu %llu %llu %llu *******\n",kl->task->traceID,kl->size,kl->platform_pos,kl->device_pos,kl->frequency,timing,kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
     
     kl->kex.notify_callback_rel_end_time=get_current_time();        
 
@@ -3559,7 +3881,7 @@ void childrenToReadyBuffer(KernelLaunchInfo& kl){
     int global_dagid=kl.task->dagInfo->globalDAGID;
     int instance=kl.task->dagInfo->instanceID;
 
-    printf("jobid: %d global_dagid: %d instance: %d\n",jobid,global_dagid,instance);
+    printf("childrenToReadyBuffer: BEGIN: jobid: %d global_dagid: %d instance: %d\n",jobid,global_dagid,instance);
     //print_job_map();
 
     auto it = jobMap.find(jobid);    
@@ -3604,11 +3926,15 @@ void childrenToReadyBuffer(KernelLaunchInfo& kl){
                                     
                                     // while (test_and_set(&rblock,0, 1))
                                     //             ;
-                                    mtx_rblock.lock();                                        
-                                    fprintf(fp,"\tchildrenToReadyBuffer:Moving from waiting to ready queue_%d-%d: %d \n",p,d,ready_buffer[p][d].size());
+                                    mtx_rblock.lock();
                                     ready_buffer[p][d].push_back(kl_suc);  
                                     succssor_kernels.push_back(kl_suc) ;
-                                    mtx_rblock.unlock();                                    
+                                    mtx_rblock.unlock();  
+
+                                    fprintf(fp,"\tchildrenToReadyBuffer:Moving from waiting to ready queue_%d-%d: %d \n",p,d,ready_buffer[p][d].size());
+
+                                    printf("\t########childrenToReadyBuffer:Moved from waiting to ready queue_%d-%d: %d \n",p,d,ready_buffer[p][d].size());  
+                                    //cv_rbuffer_available.notify_one();                                
                                     // rblock=0;  
                                     
                                 }
@@ -4556,7 +4882,7 @@ void change_frequency(unsigned int frequency, int platform_pos, int device_pos)
         str=str+std::to_string(d)+"/cpufreq/scaling_cur_freq";
         fp = fopen(str.c_str(), "r"); // read mode
         if (fp == NULL)
-        exit(EXIT_FAILURE); 
+            exit(EXIT_FAILURE); 
         char* tmp;
         while (fgets(line, 1024, fp))    
         {   
@@ -4766,7 +5092,11 @@ void host_synchronize(std::vector< std::vector<cl_command_queue>>& cmd_qs){
 
     for(int i=0;i<NumOfPlatforms;i++) 
         for(int j=0;j<cmd_qs[i].size();j++)
+        {  
+            clFlush(cmd_qs[i][j]);
             clFinish(cmd_qs[i][j]);
+
+        }    
 
     // printf("Host Synchronised inside end: %d\n",nKernels);
         
@@ -4796,6 +5126,7 @@ void release_buffers( std::vector<cl_mem>& buffers) {
         clReleaseMemObject(buffers[i]);
     }
     buffers.clear();
+
     return;
 }
 

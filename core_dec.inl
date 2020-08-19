@@ -1,4 +1,4 @@
-#include "functionalities.h"
+#include "core.h"
 #define NumOfPlatforms 2
 using namespace std;
 unsigned long long int write_buffers_begin;
@@ -94,6 +94,8 @@ void load_config(std::string filename)
                 generatePlot=atoi(value.c_str());
             else if(name.compare("RACE_TO_IDLE")==0)
                 raceToIdle=atoi(value.c_str());
+            else if(name.compare("EVENTS_ENABLE")==0)
+                EVENTS_ENABLE = atoi(value.c_str());
             
         }        
     }
@@ -259,7 +261,7 @@ int count_dag_from_file(const char* filename)
     FILE *file;
     file = fopen(filename, "r");
     char line[1024];
-
+ 
     if (!file) 
     {
         fprintf(stderr, "Can't open input file.: dag_history file\n");
@@ -505,9 +507,44 @@ void get_all_devices()
     //return all_devices;
 }
 
+void reset_kl_info()
+{
+    
+    for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr)       
+    {
+        KernelLaunchInfo* klinfo=itr->second;
+        klinfo->queued=0;
+        KernelInfo* cl_info_0=klinfo->task->kernels[0];
+        // klinfo->task->data.clear();
+        reset_nonpersistent_host_arrays(*cl_info_0, klinfo->task->data);
+        
+            // printf("data size: %d\n",klinfo->task->data.size());
+        if(klinfo->control_mode!=2)
+            klinfo->size = cl_info_0->globalWorkSize[0]*cl_info_0->globalWorkSize[1]*cl_info_0->globalWorkSize[2];
+        else
+        {
+            klinfo->size = klinfo->task->task_size;
+        }
+        klinfo->offset = 0;
+        klinfo->priority=0;
+        //reset dagtimematrix
+        for(int i=0;i<DAGtimeMatrix.size();i++)
+        {
+            for(int j=0;j<DAGtimeMatrix[i].size();j++)
+            {
+                DAGtimeMatrix[i][j]->safe_mode=0;
+                DAGtimeMatrix[i][j]->deadlineViolated=0;
+            }
+        }
+        printf("reset: %s - %d size %u offset %u \n",klinfo->task->taskID.c_str(),klinfo->queued,klinfo->size,klinfo->offset);
+        klinfo->reset=1;
+        
+    }
+}
+
 void reset_launch_info()
 {
-    printf("TaskMap size: %d\n",taskMap.size());
+    printf("TaskMap size: %lu\n",taskMap.size());
     for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr)       
     {
         KernelLaunchInfo* klinfo=itr->second;
@@ -554,7 +591,8 @@ void host_initialize(std::vector<std::vector<cl_device_id>>& all_devices, std::v
     cl_device_id* cpu=&(all_devices[PLATFORM_CPU][0]);
     int num_gpus=all_devices[PLATFORM_GPU].size();
     int num_cpus=all_devices[PLATFORM_CPU].size();    
-
+    gpuss = num_gpus;
+    cpuss = num_cpus;
     cl_platform_id gpu_platform;
     clGetDeviceInfo(all_devices[PLATFORM_GPU][0], CL_DEVICE_PLATFORM, sizeof(gpu_platform), &gpu_platform, NULL);
     cl_context_properties gps[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)gpu_platform, 0 };
@@ -761,31 +799,42 @@ int check_dependency(std::vector <int> deps,int dag)
 //parse trace input
 int parse_trace_input(int* index)
 {
-    
+    std::cout << trace_queue[*index].second<<"\n"; 
     printf("Parsing trace %d\n", *index);
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"parse_trace_input: BEGIN \n");
 
-     
+     //printf("Flag1\n");
     // printf("Index %d \n",*index);
     char *input = new char[trace_queue[*index].second.length() + 1];
+    //printf("Flag2\n");
     strcpy(input, trace_queue[*index].second.c_str());    
     char* tok,dep;
-    tok = strtok(input, ",");//dag number 
-    std::string file_name = std::string("./tinfo/DAG_");    
+    tok = strtok(input, ",");//dag number
+    //printf("Flag3\n");
+
+    std::string file_name = std::string("./tinfo/DAG_"); 
+   // printf("Flag4\n");   
     file_name = file_name + std::string(tok);
+    //printf("Flag5\n");
+    //std:;cout <<"Parsing filename "<<file_name<<endl;
     int job=atoi(tok);
+    //printf("Flag6\n");
     //std::string unique_task_id = "D" + std::string(tok);
     //unique_task_id=unique_task_id+"-N";
     //std::string dep_id = std::string(unique_task_id.c_str());
     tok = strtok(0, ",");//node number   
+    //printf("Flag7\n");
     file_name = file_name + "/node_" + std::string(tok);
     //unique_task_id=unique_task_id+std::string(tok)+"-";
-    
+    //printf("Flag8\n");
     tok = strtok(0, ","); //fused variant
+    //printf("Flag9\n");
     file_name = file_name + ":" + std::string(tok);
+    std:;cout <<"Parsing filename1 "<<file_name<<endl;
     //unique_task_id=unique_task_id+std::string(tok);
     // printf("File Name: %s \n",file_name.c_str());
+    //printf("Flag10\n");
     std::vector<int> nodes;
     if(atoi(tok)!=-1)
     {
@@ -799,8 +848,10 @@ int parse_trace_input(int* index)
             ss.ignore();
         }  
     }
+    //printf("Flag11\n");
     // printf("nodes.size: %u\n",nodes.size());
     tok = strtok(0, ",");
+    //printf("Flag12\n");
     std::vector<int> deps; //vector of dependent nodes in the dag
     if(atoi(tok)!=-1)
     {
@@ -814,7 +865,7 @@ int parse_trace_input(int* index)
             ss.ignore();
         }  
     }  
-    
+    //printf("Flag13\n");
     tok = strtok(0, ",");
     int platform =atoi(tok);    
     tok = strtok(0, ",");
@@ -840,6 +891,7 @@ int parse_trace_input(int* index)
     // printf("\ninst: %d",inst);
     tok = strtok(0, "\n");
     int freq =(atoi(tok));
+    //printf("Flag14\n");
     // printf("freq: %d\n",freq); 
     delete [] input,tok,dep;  
     if (freq==-1)     
@@ -847,32 +899,36 @@ int parse_trace_input(int* index)
         freq=deviceSpec[platform][device]->midFrequency;
     }
     // printf("frequency: %u\nfile_name: %s\n",freq,file_name.c_str()); 
-
+    //printf("Flag15\n");
     auto it = dagMap.find(dag);
     if(it != dagMap.end())
     {           
         it->second->instanceID=inst;            
     }
-
+    //printf("Flag16\n");
     KernelInfo *cl_info_0,*cl_info_1;
+    //printf("Flag16.1\n");
     cl_info_0 = (kernel_cl_queue.at(file_name.c_str())).first;
+    //printf("Flag16.2\n");
     cl_info_1 = (kernel_cl_queue.at(file_name.c_str())).second;
-
+    //printf("Flag17\n");
     //Populate TaskInfo
     TaskInfo* task_info=new TaskInfo();
     task_info->traceID=trace_queue[*index].first;
     (task_info->taskID).assign(file_name.c_str());
     // printf("taskID: %s\n",task_info->taskID.c_str()); 
-
+    //printf("Flag18\n");
     DAGInfo *dinfo= new DAGInfo();
     dinfo->globalDAGID=dag;
     dinfo->jobID=job;
     dinfo->instanceID=inst;
     task_info->dagInfo=dinfo;
+    //printf("Flag19\n");
     for(int i=0;i<nodes.size();i++)
         task_info->nodes.push_back(nodes[i]);
     task_info->kernels.push_back(cl_info_0);
     task_info->kernels.push_back(cl_info_1);
+    //printf("Flag20\n");
     for(int i=0;i<deps.size();i++)
         task_info->dependency.push_back(deps[i]);
     task_info->exTime=exTime;
@@ -884,7 +940,7 @@ int parse_trace_input(int* index)
     task_info->basespeed.push_back(task_info->task_size/854761.5);
     //host_array_initialize(*cl_info_0, task_info->data);//populate input host arrays
     // printf("Task populated\n");
-
+    //printf("Flag21\n");
     //Populate KernelLaunchInfo
     KernelLaunchInfo* launch_info=new KernelLaunchInfo(); 
     // trace_queue.erase(trace_queue.begin()+*index);
@@ -907,7 +963,7 @@ int parse_trace_input(int* index)
     // printf("%u",launch_info->frequency);
     DAGtimeMatrix[job][inst]->klinfo=launch_info;
     // DAGtimeMatrix[job][inst]->device=device;    
-
+    //printf("Flag22\n");
     // std::string task_name=std::to_string(task_info->dagInfo->globalDAGID)+"-";
     // for(int i=0;i<nodes.size();i++)
     //     task_name+=std::to_string(nodes[i]);
@@ -921,7 +977,7 @@ int parse_trace_input(int* index)
 
         // print_launch_info(*launch_info);    
     }
-       
+       //printf("Flag23\n");
     if(deps.size()==0)
     {   
         // printf("\narrivaltime job %d instance %d %llu",task_info->dagInfo->jobID,task_info->dagInfo->instanceID,DAGtimeMatrix[task_info->dagInfo->jobID][task_info->dagInfo->instanceID]->arrivalTime)   ;  
@@ -931,7 +987,7 @@ int parse_trace_input(int* index)
             task_queue[platform][device].push_back(launch_info);
     
     }
-    
+    //printf("Flag24\n");
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"parse_trace_input: END\n");
 
@@ -964,7 +1020,7 @@ void populate_task_queue()
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"\npopulate_task_queue: BEGIN \n");
 
-    printf("trace_queue size: %u\n",trace_queue.size());
+    printf("trace_queue size: %lu\n",trace_queue.size());
     for(int i=0;i<trace_queue.size();i++)
     {
         // printf("Index: %d\n",i);
@@ -972,7 +1028,7 @@ void populate_task_queue()
         parse_trace_input(index);     
     } 
     // printf("parse_trace_input end\n");
-    printf("size of taskQueue: %d-%d:%d",task_queue[0][0].size(),task_queue[0][1].size(),task_queue[1][0].size());
+    printf("size of taskQueue: %lu-%lu:%lu",task_queue[0][0].size(),task_queue[0][1].size(),task_queue[1][0].size());
     initialise_nodes_matrix();
     // printf("initialise_nodes_matrix\n");
     if (LOG_SCHEDULER >=1)
@@ -1116,6 +1172,251 @@ void create_micro_kernel(int platform)
     micro_kernel_klinfo=launch_info;
 }
 
+
+void *run_kernel(void *vargp){  
+    cpu_set_t cpuset;
+    pthread_t thread_id_scheduler = pthread_self(); 
+    CPU_ZERO(&cpuset);
+    CPU_SET(3, &cpuset);    
+    int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
+    int rc;
+    pthread_attr_t attr;
+    struct sched_param param;
+    // params.sched_priority = sched_get_priority_max(SCHED_RR);
+    // pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
+    rc = pthread_attr_init (&attr);
+    
+    (param.sched_priority)++;
+    rc = pthread_attr_setschedparam (&attr, &param);
+    int traceID=*((int *) vargp);
+    printf("\nrun_kernel %lu on core %d \n",pthread_self(),sched_getcpu());
+
+    // KernelLaunchInfo *kl_info = (KernelLaunchInfo *) vargp;
+    // printf("Obtaining Kernel Launch Info Object\n ");    
+    
+    KernelLaunchInfo *kl_info = taskMap.begin()->second;
+    printf("Obtained Kernel Launch Info Object for trace %d\n",kl_info->task->traceID);    
+    
+    if (LOG_SCHEDULER >=1)
+            fprintf(fp,"\n\nrun_kernel: BEGIN: %llu \n",get_current_time());
+
+    std::string filename = "./profile_statistics/trace_"+to_string(traceID)+".stats";
+    std::string microkernel_filename = "./profile_statistics/microkernel_for_trace_"+to_string(kl_info->task->traceID)+".stats";
+    ofstream ofs, ofs_microkernel;
+    ofs.open(filename,std::ios_base::app|std::ios_base::out);
+    ofs_microkernel.open(microkernel_filename,std::ios_base::app|std::ios_base::out);
+
+    for(int i = 0 ;i<PROFILE_ITERATIONS; i++)
+    {
+        printf("Dispatching microkernel\n");
+        if(micro_kernel_device!=-1)
+        {
+            dispatch(*micro_kernel_klinfo);
+            micro_kernel_klinfo->finished=0;
+        }
+        
+        kl_info->kex.get_image_start_time = get_current_time();
+        // reset_nonpersistent_host_arrays(*(kl_info->task->kernels[0]),kl_info->task->data);
+        kl_info->kex.get_image_end_time = get_current_time();
+        printf("Dispatching kernel to be profiled\n");
+        dispatch(*kl_info);
+        kl_info->finished=0;
+        
+        // int bound = 0;
+        // if(micro_kernel_device!=-1)
+        //     bound = 2;
+        // else
+        //     bound = 1;
+        
+        
+        // while(num_profile_kernels < bound )
+        // {
+
+        //     printf("HOST %d\n",num_profile_kernels);
+            
+        // }
+        std::unique_lock<std::mutex> lk(run_kernel_lock);
+        cv.wait(lk, []{return processed;});
+        num_profile_kernels=0;
+        micro_kernel_klinfo->finished=0;
+        printf("microkernel finished!\n");
+        kl_info->finished=0;
+        printf("profile kernel finished!\n");
+        printf("Dumping profile statistics\n");
+        if(EVENTS_ENABLE)
+        {
+            PERSISTENCE_DEBUG printf("Dumping event information and host information data\n");
+            dump_profile_statistics(kl_info,ofs);
+            dump_profile_statistics(micro_kernel_klinfo,ofs_microkernel);
+            printf("Releasing kernel events\n");
+            release_kernel_events(kl_info->ke);
+            release_kernel_events(micro_kernel_klinfo->ke);
+        }
+        else
+        {
+            PERSISTENCE_DEBUG printf("Dumping only host information data\n");
+            dump_total_time(kl_info,ofs);
+            dump_total_time(micro_kernel_klinfo,ofs_microkernel);
+        }
+        printf("Resetting kl info\n");
+        reset_kl_info();
+        printf("Finishing iteration %d\n",i);
+        processed = false;
+           
+    }
+    
+    release_buffers(kl_info->io);
+    release_buffers(micro_kernel_klinfo->io);
+    release_host_arrays(kl_info->task->data);
+    release_host_arrays(micro_kernel_klinfo->task->data);
+
+    ofs.close();
+    ofs_microkernel.close();
+    
+
+    if(get_current_time()<hyper_period)
+        std::this_thread::sleep_for(std::chrono::microseconds(hyper_period-get_current_time()));
+
+    if (LOG_SCHEDULER >=1){
+        fprintf(fp,"run_scheduler: END: %llu \n",get_current_time());
+        fflush(fp);
+    }
+    printf("exiting\n");
+}
+
+void *run_dag(void *vargp){  
+    cpu_set_t cpuset;
+    pthread_t thread_id_scheduler = pthread_self(); 
+    CPU_ZERO(&cpuset);
+    CPU_SET(3, &cpuset);    
+    int s = pthread_setaffinity_np(thread_id_scheduler, sizeof(cpu_set_t), &cpuset);
+    int rc;
+    pthread_attr_t attr;
+    struct sched_param param;
+    // params.sched_priority = sched_get_priority_max(SCHED_RR);
+    // pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
+    rc = pthread_attr_init (&attr);
+    
+    (param.sched_priority)++;
+    rc = pthread_attr_setschedparam (&attr, &param);
+    int traceID=*((int *) vargp);
+    printf("\nrun_dag %lu on core %d \n",pthread_self(),sched_getcpu());
+
+    // KernelLaunchInfo *kl_info = (KernelLaunchInfo *) vargp;
+    // printf("Obtaining Kernel Launch Info Object\n "); 
+    while(count1<taskMap.size())
+    {
+        v.push_back(taskMap[make_pair(0,count1++)]);
+    }   
+    /*for (auto itr = taskMap.begin(); itr != taskMap.end(); ++itr) 
+    { 
+       v[count1++] = itr->second; 
+    }*/
+     ofstream ofs;// ofs_microkernel;
+     num_profile_kernels=0;
+    for(int ii=0;ii<v.size();ii++)
+    {
+        processed = false;
+        KernelLaunchInfo *kl_info = v[ii];
+        //KernelLaunchInfo *kl_info = taskMap.begin()->second;
+        printf("Obtained Kernel Launch Info Object for trace %d\n",kl_info->task->traceID);    
+        
+        if (LOG_SCHEDULER >=1)
+                fprintf(fp,"\n\nrun_kernel: BEGIN: %llu \n",get_current_time());
+
+        std::string filename = "./profile_statistics/trace_"+to_string(traceID)+".stats";
+        //std::string microkernel_filename = "./profile_statistics/microkernel_for_trace_"+to_string(kl_info->task->traceID)+".stats";
+       ofs.open(filename,std::ios_base::app|std::ios_base::out);
+     //ofs_microkernel.open(microkernel_filename,std::ios_base::app|std::ios_base::out);
+
+        for(int i = 0 ;i<PROFILE_ITERATIONS; i++)
+        {
+            /*printf("Dispatching microkernel\n");
+            if(micro_kernel_device!=-1)
+            {
+                dispatch(*micro_kernel_klinfo);
+                micro_kernel_klinfo->finished=0;
+            }*/
+            
+            kl_info->kex.get_image_start_time = get_current_time();
+            // reset_nonpersistent_host_arrays(*(kl_info->task->kernels[0]),kl_info->task->data);
+            kl_info->kex.get_image_end_time = get_current_time();
+            printf("Dispatching kernel to be profiled %d\n",ii);
+            dispatch(*kl_info);
+            kl_info->finished=0;
+            
+            // int bound = 0;
+            // if(micro_kernel_device!=-1)
+            //     bound = 2;
+            // else
+            //     bound = 1;
+            
+            
+            // while(num_profile_kernels < bound )
+            // {
+
+            //     printf("HOST %d\n",num_profile_kernels);
+                
+            // }
+            std::unique_lock<std::mutex> lk(run_kernel_lock);
+            cv.wait(lk, []{return processed;});
+            printf("Waiting done\n");
+            
+            num_profile_kernels=0;
+            //micro_kernel_klinfo->finished=0;
+            //printf("microkernel finished!\n");
+            kl_info->finished=0;
+            printf("profile kernel finished!\n");
+            printf("Dumping profile statistics\n");
+            if(EVENTS_ENABLE)
+            {
+                PERSISTENCE_DEBUG printf("Dumping event information and host information data\n");
+                dump_profile_statistics(kl_info,ofs);
+                //dump_profile_statistics(micro_kernel_klinfo,ofs_microkernel);
+                printf("Releasing kernel events\n");
+                release_kernel_events(kl_info->ke);
+                //release_kernel_events(micro_kernel_klinfo->ke);
+            }
+            else
+            {
+                PERSISTENCE_DEBUG printf("Dumping only host information data\n");
+                dump_total_time(kl_info,ofs);
+                //dump_total_time(micro_kernel_klinfo,ofs_microkernel);
+            }
+
+            processed = false;
+        }
+    }
+    printf("Releasing buffers\n");
+    for(int ii=0;ii<v.size();ii++)
+    {
+        KernelLaunchInfo *kl_info = v[ii];
+        print_host_arrays(kl_info->task->data);
+        release_buffers(kl_info->io);
+        //release_buffers(micro_kernel_klinfo->io);
+        
+        release_host_arrays(kl_info->task->data);
+        //release_host_arrays(micro_kernel_klinfo->task->data);
+    }
+    printf("Resetting kl info\n");
+    reset_kl_info();
+    printf("Resetting kl info done\n");
+    printf("Closing ofs\n");
+    ofs.close();
+    printf("Closing ofs done\n");
+    //ofs_microkernel.close();
+    
+
+    // if(get_current_time()<hyper_period)
+//        std::this_thread::sleep_for(std::chrono::microseconds(hyper_period-get_current_time()));
+    printf("Run Scheduler end\n");
+    if (LOG_SCHEDULER >=1){
+        fprintf(fp,"run_scheduler: END: %llu \n",get_current_time());
+        fflush(fp);
+    }
+    printf("exiting\n");
+}
+
 void *run_scheduler(void *vargp){  
     cpu_set_t cpuset;
     pthread_t thread_id_scheduler = pthread_self(); 
@@ -1125,7 +1426,7 @@ void *run_scheduler(void *vargp){
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_RR);
     pthread_setschedparam(thread_id_scheduler,SCHED_RR,&params);
-    printf("\nrun_scheduler %u on core %d \n",pthread_self(),sched_getcpu());
+    printf("\nrun_scheduler %lu on core %d \n",pthread_self(),sched_getcpu());
 
     int taskcount=*((int *) vargp);
     if (LOG_SCHEDULER >=1)
@@ -1143,7 +1444,7 @@ void *run_scheduler(void *vargp){
         dispatch_from_queue();  
 
     }
-
+    
     // printf("taskcount: %d, no_micro_kernel: %d, nTasks: %d\n",taskcount,no_micro_kernel,nTasks);
 
     if(get_current_time()<hyper_period)
@@ -1159,35 +1460,6 @@ void dispatch_from_queue()
 {
     if (LOG_SCHEDULER >=1)
         fprintf(fp,"dispatch_from_queue: BEGIN: %llu \n",get_current_time());
-    
-    std::unique_lock<std::mutex> lk(mtx_rblock);
-    cv.wait(lk, []{return processed;});
-    num_profile_kernels=0;
-    micro_kernel_klinfo->finished=0;
-    printf("microkernel finished!\n");
-    kl_info->finished=0;
-    printf("profile kernel finished!\n");
-    printf("Dumping profile statistics\n");
-    if(EVENTS_ENABLE)
-    {
-        PERSISTENCE_DEBUG printf("Dumping event information and host information data\n");
-        dump_profile_statistics(kl_info,ofs);
-        dump_profile_statistics(micro_kernel_klinfo,ofs_microkernel);
-        printf("Releasing kernel events\n");
-        release_kernel_events(kl_info->ke);
-        release_kernel_events(micro_kernel_klinfo->ke);
-    }
-    else
-    {
-        PERSISTENCE_DEBUG printf("Dumping only host information data\n");
-        dump_total_time(kl_info,ofs);
-        dump_total_time(micro_kernel_klinfo,ofs_microkernel);
-    }
-    printf("Resetting kl info\n");
-    reset_kl_info();
-    printf("Finishing iteration %d\n",i);
-    processed = false;
-
     
     // printf("dispatch_from_queue: BEGIN: %llu \n",get_current_time());
     for(int p=0;p<NumOfPlatforms;p++)
@@ -1347,96 +1619,106 @@ std::vector<cl_program> build_kernel(KernelInfo& ki,  std::vector<std::vector<cl
 
     // printf("0: %u, 1: %u",ctxs[0],ctxs[1]);
     std::vector<cl_program> programs(NumOfPlatforms);
-    programs[PLATFORM_GPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_GPU], PLATFORM_GPU);
-    programs[PLATFORM_CPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_CPU],PLATFORM_CPU);
-    if (LOG_LEVEL >=1)
+    std::string kernel_file = ki.kernelSource;
+    std::string kernel_file_bin_cpu = "src/"+kernel_file.erase(ki.kernelSource.length()-3)+"_cpu.bin";
+    std::string kernel_file_bin_gpu = "src/"+kernel_file.erase(ki.kernelSource.length()-3)+"_gpu.bin";
+    if(!file_exists(kernel_file_bin_cpu) && !file_exists(kernel_file_bin_gpu))
     {
-        fprintf(fp, "\tComplied Programs: %s\n",ki.kernelSource.c_str());
+        printf("Trying to compile program %s\n",ki.kernelSource.c_str());
+        programs[PLATFORM_GPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_GPU], PLATFORM_GPU);
+        programs[PLATFORM_CPU] = cl_compile_program(ki.kernelSource.c_str(), ctxs[PLATFORM_CPU],PLATFORM_CPU);
+        if (LOG_LEVEL >=1)
+        {
+            fprintf(fp, "\tComplied Programs: %s\n",ki.kernelSource.c_str());
+        }
+        // printf("\tComplied Programs: %s\n",ki.kernelSource.c_str());
+        //string options="-g";
+
+        status = clBuildProgram(programs[PLATFORM_GPU], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
+
+        if(status==CL_SUCCESS)
+        {   fprintf(fp," CL_SUCCESS\n");
+            // printf(" CL_SUCCESS\n");
+        }
+        else if(status==CL_INVALID_PROGRAM)
+        	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
+        else if(status==CL_INVALID_VALUE)
+        	fprintf(fp," Error: CL_INVALID_VALUE\n");
+        else if(status==CL_INVALID_DEVICE)
+        	fprintf(fp," Error: CL_INVALID_DEVICE\n");
+        else if(status==CL_INVALID_BINARY)
+        	fprintf(fp," Error: CL_INVALID_BINARY\n");
+        else if(status==CL_INVALID_BUILD_OPTIONS)
+        	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_COMPILER_NOT_AVAILABLE)
+        	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
+        else if(status==CL_BUILD_PROGRAM_FAILURE)
+        	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_OUT_OF_RESOURCES)
+        	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
+        else if(status==CL_OUT_OF_HOST_MEMORY)
+        	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
+
+        check(status, "Building Program");
+        // printf("Building Program GPU\n");
+
+
+        // if(status != CL_SUCCESS){   
+        //     size_t len = 0;      
+        //     clBuildProgram(programs[0], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
+        //     clGetProgramBuildInfo(programs[0], deviceId, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);  
+        //     char *buffer = calloc(len, sizeof(char));                                    //     ret = clGetProgramBuildInfo(program, deviceId, CL_PROGRAM_BUILD_LOG, len, buffer, NULL);                                                                      //     fprintf(fp, " %s\n", buffer);                                                // }       
+        
+        status = clBuildProgram(programs[PLATFORM_CPU], num_cpus, cpu, ki.options.c_str(), NULL, NULL);
+        
+        if(status=CL_SUCCESS)
+        {   fprintf(fp," CL_SUCCESS\n");
+            // printf(" CL_SUCCESS\n");
+        }
+        else if(status==CL_INVALID_PROGRAM)
+        	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
+        else if(status==CL_INVALID_VALUE)
+        	fprintf(fp," Error: CL_INVALID_VALUE\n");
+        else if(status==CL_INVALID_DEVICE)
+        	fprintf(fp," Error: CL_INVALID_DEVICE\n");
+        else if(status==CL_INVALID_BINARY)
+        	fprintf(fp," Error: CL_INVALID_BINARY\n");
+        else if(status==CL_INVALID_BUILD_OPTIONS)
+        	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_COMPILER_NOT_AVAILABLE)
+        	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
+        else if(status==CL_BUILD_PROGRAM_FAILURE)
+        	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_INVALID_OPERATION)
+        	fprintf(fp," Error: CL_INVALID_OPERATION\n");
+        else if(status==CL_OUT_OF_RESOURCES)
+        	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
+        else if(status==CL_OUT_OF_HOST_MEMORY)
+        	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
+
+        check(status, "Building Program");
+
+        // printf("Building Program CPU\n");
+
+        if (LOG_LEVEL >=1)
+        {
+            fprintf(fp,"\tBuilding %s program\n",ki.KernelName.c_str());
+        }
+        
+       // write_binaries(kernel_file_bin_cpu,programs[PLATFORM_CPU],num_cpus,PLATFORM_CPU);
+       // write_binaries(kernel_file_bin_gpu,programs[PLATFORM_GPU],num_gpus,PLATFORM_GPU);
+
     }
-    // printf("\tComplied Programs: %s\n",ki.kernelSource.c_str());
-    //string options="-g";
-
-    status = clBuildProgram(programs[PLATFORM_GPU], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
-
-    if(status==CL_SUCCESS)
-    {   fprintf(fp," CL_SUCCESS\n");
-        // printf(" CL_SUCCESS\n");
-    }
-    else if(status==CL_INVALID_PROGRAM)
-    	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
-    else if(status==CL_INVALID_VALUE)
-    	fprintf(fp," Error: CL_INVALID_VALUE\n");
-    else if(status==CL_INVALID_DEVICE)
-    	fprintf(fp," Error: CL_INVALID_DEVICE\n");
-    else if(status==CL_INVALID_BINARY)
-    	fprintf(fp," Error: CL_INVALID_BINARY\n");
-    else if(status==CL_INVALID_BUILD_OPTIONS)
-    	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_COMPILER_NOT_AVAILABLE)
-    	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
-    else if(status==CL_BUILD_PROGRAM_FAILURE)
-    	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_OUT_OF_RESOURCES)
-    	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
-    else if(status==CL_OUT_OF_HOST_MEMORY)
-    	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
-
-    check(status, "Building Program");
-    // printf("Building Program GPU\n");
-
-
-    // if(status != CL_SUCCESS){   
-    //     size_t len = 0;      
-    //     clBuildProgram(programs[0], num_gpus, gpu, ki.options.c_str(), NULL, NULL);
-    //     clGetProgramBuildInfo(programs[0], deviceId, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);  
-    //     char *buffer = calloc(len, sizeof(char));                                    //     ret = clGetProgramBuildInfo(program, deviceId, CL_PROGRAM_BUILD_LOG, len, buffer, NULL);                                                                      //     fprintf(fp, " %s\n", buffer);                                                // }       
-    
-    status = clBuildProgram(programs[PLATFORM_CPU], num_cpus, cpu, ki.options.c_str(), NULL, NULL);
-    
-    if(status=CL_SUCCESS)
-    {   fprintf(fp," CL_SUCCESS\n");
-        // printf(" CL_SUCCESS\n");
-    }
-    else if(status==CL_INVALID_PROGRAM)
-    	fprintf(fp," Error: CL_INVALID_PROGRAM\n");
-    else if(status==CL_INVALID_VALUE)
-    	fprintf(fp," Error: CL_INVALID_VALUE\n");
-    else if(status==CL_INVALID_DEVICE)
-    	fprintf(fp," Error: CL_INVALID_DEVICE\n");
-    else if(status==CL_INVALID_BINARY)
-    	fprintf(fp," Error: CL_INVALID_BINARY\n");
-    else if(status==CL_INVALID_BUILD_OPTIONS)
-    	fprintf(fp," Error: CL_INVALID_BUILD_OPTIONS\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_COMPILER_NOT_AVAILABLE)
-    	fprintf(fp," Error: CL_COMPILER_NOT_AVAILABLE\n");
-    else if(status==CL_BUILD_PROGRAM_FAILURE)
-    	fprintf(fp," Error: CL_BUILD_PROGRAM_FAILURE\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_INVALID_OPERATION)
-    	fprintf(fp," Error: CL_INVALID_OPERATION\n");
-    else if(status==CL_OUT_OF_RESOURCES)
-    	fprintf(fp," Error: CL_OUT_OF_RESOURCES\n");
-    else if(status==CL_OUT_OF_HOST_MEMORY)
-    	fprintf(fp," Error: CL_OUT_OF_HOST_MEMORY\n");
-
-    check(status, "Building Program");
-
-    // printf("Building Program CPU\n");
-
-    if (LOG_LEVEL >=1)
-    {
-        fprintf(fp,"\tBuilding %s program\n",ki.KernelName.c_str());
-    }
-
     ki.kernelObjects.push_back(clCreateKernel(programs[PLATFORM_GPU], ki.KernelName.c_str(), &status));
     check(status, "\nCreating Kernel");
     ki.kernelObjects.push_back(clCreateKernel(programs[PLATFORM_CPU], ki.KernelName.c_str(), &status));
@@ -1462,7 +1744,11 @@ cl_program cl_compile_program(const char* kernel_file_name, cl_context ctx, int 
     sbuffer << f.rdbuf();
     std::string kernel_file_src = sbuffer.str();
     const char* program_src = kernel_file_src.c_str();
+    
+    
     // printf("platform_type: %d -> %u , %u\n",platform_type,ctx,all_ctxs[platform_type]);
+    
+
     cl_program program = clCreateProgramWithSource(ctx, 1, (const char**)&program_src, NULL, &status);
     
     if(status==CL_SUCCESS)
@@ -1483,6 +1769,7 @@ cl_program cl_compile_program(const char* kernel_file_name, cl_context ctx, int 
     }
 
     return program;
+
 }
 
 KernelInfo* assign_kernel_info(const char * info_file_name) {
@@ -1491,12 +1778,14 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
         fprintf(fp,"assign_kernel_info: BEGIN \n");
  	    fprintf(fp,"\tKERNEL INFORMATION: %s\n",info_file_name);
     }
+    printf("Opening file %s\n",info_file_name);
     FILE* kernel_info_file = fopen(info_file_name, "r");
     KernelInfo* kernel_info = new KernelInfo();
     char line[1024];
     int length, i, is_buffer, gpu_index, cpu_index, index;
     char **list, **sublist;
-
+    kernel_info->configured[PLATFORM_CPU]=0;
+    kernel_info->configured[PLATFORM_GPU]=0;
     if (!kernel_info_file) 
     {
         fprintf(fp,"\tCan't open %s file.\n",info_file_name);
@@ -1565,11 +1854,11 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {
                     splitstring liststring(str_to_char_array(slist[1]));
                     vector<string> ssublist=liststring.split(',');
+                    printf("Updating input buffer information\n");
                     
-                    
-                    for (i = 0; i<ssublist.size(); i+=3) 
+                    for (i = 0; i<ssublist.size(); i+=4) 
                     {
-                        (kernel_info -> inputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str())));   
+                        (kernel_info -> inputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()), atoi(ssublist[i+3].c_str())));   
                     }
                     kernel_info -> noInputBuffers = (kernel_info -> inputBuffers).size();
                     
@@ -1578,11 +1867,11 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {
                     splitstring liststring(str_to_char_array(slist[1]));
                     vector<string> ssublist=liststring.split(',');
+                    printf("Updating output buffer information\n");
                     
-                    
-                    for (i = 0; i<ssublist.size(); i+=3) 
+                    for (i = 0; i<ssublist.size(); i+=4) 
                     {
-                        (kernel_info -> outputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()) ));   
+                        (kernel_info -> outputBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()), atoi(ssublist[i+3].c_str()) ));   
                     }
                     kernel_info -> noOutputBuffers = (kernel_info -> outputBuffers).size();   
                     // printf("outputBuffers size: %d : %d\n",kernel_info -> noOutputBuffers,kernel_info->outputBuffers.size());
@@ -1592,11 +1881,11 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {
                     splitstring liststring(str_to_char_array(slist[1]));
                     vector<string> ssublist=liststring.split(',');                    
-                    
+                    printf("Updating input output buffer information\n");
 
-                    for (i = 0; i<ssublist.size(); i+=3) 
+                    for (i = 0; i<ssublist.size(); i+=4) 
                     {
-                        (kernel_info -> ioBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()) ));   
+                        (kernel_info -> ioBuffers).push_back(std::tuple<std::string, unsigned int, unsigned int, unsigned int>(ssublist[i], atoi(ssublist[i+1].c_str()), atoi(ssublist[i+2].c_str()), atoi(ssublist[i+3].c_str()) ));   
                     }
                     kernel_info -> noIOBuffers = (kernel_info -> ioBuffers).size();   
                     
@@ -1649,7 +1938,7 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
                 {                    
                   
                     (kernel_info -> options).assign(slist[1]+"="+slist[2]+"="+slist[3]+"="+slist[4]+"="+slist[5]+"="+slist[6]+"="+slist[7]+"="+slist[8]);
-                    //printf("slist: %s\n",kernel_info -> options.c_str());
+                    printf("slist: %s\n",kernel_info -> options.c_str());
                 }
             }
             
@@ -1661,6 +1950,18 @@ KernelInfo* assign_kernel_info(const char * info_file_name) {
         fprintf(fp,"assign_kernel_info: END \n");
     }
     return kernel_info;
+}
+
+void reset_nonpersistent_host_arrays(KernelInfo& ki, std::vector<void*>& data)
+{
+    for (int i = 0; i < ki.inputBuffers.size(); ++i)
+    {
+        int persistent = std::get<3>(ki.inputBuffers.at(i));
+        std::string type =std::get<0>(ki.inputBuffers.at(i));
+        int size = std::get<1>(ki.inputBuffers.at(i));
+        if (!persistent)
+            array_randomize(data[i], type, size);
+    }   
 }
 
 void host_array_initialize(KernelInfo& ki, std::vector<void*>& data) {
@@ -1678,6 +1979,34 @@ void host_array_initialize(KernelInfo& ki, std::vector<void*>& data) {
         type = std::get<0>(ki.inputBuffers.at(i));
         size = std::get<1>(ki.inputBuffers.at(i));
         data.push_back(array_allocate(type, size));
+        if(i==0 && ki.KernelName=="cnn_0")
+        {
+            //printf("reached func1 %d",size);
+            image(data.back(), type, size);
+            //printf("reached func2");
+            continue;
+        }
+        if(i==1 && ki.KernelName=="cnn_0")
+        {
+            //printf("reached func11 %d",size);
+            image(data.back(), type, size);
+            //printf("reached func22");
+            continue;
+        }
+        if(i==1 && ki.KernelName=="cnn_2")
+        {
+            //printf("reached func11 %d",size);
+            image(data.back(), type, size);
+            //printf("reached func22");
+            continue;
+        }
+        if(i==1 && ki.KernelName=="cnn_4")
+        {
+            //printf("reached func11 %d",size);
+            image(data.back(), type, size);
+            //printf("reached func22");
+            continue;
+        }
         array_randomize(data.back(), type, size);
     }
     if (LOG_LEVEL >=1)
@@ -1696,6 +2025,66 @@ void host_array_initialize(KernelInfo& ki, std::vector<void*>& data) {
     {    
         fprintf(fp,"host_array_initialize: END \n");
     }
+}
+
+void image(void* data, std::string type, int size)
+{   printf("reached func");
+    float* A;
+        A = (float*)data;
+        //printf("reached func");
+        //vector<vector<double>> ar;
+        int chk;
+            if(size==784)
+            {
+                FILE *fptr1 = fopen("feed.txt", "r");
+                fscanf(fptr1,"%d",&chk);
+                fclose(fptr1);
+                FILE *fptr = fopen("data.txt", "r");
+                //printf("reached func");
+                fseek(fptr, 784*chk*2+chk, SEEK_SET);
+              for(int ii=0;ii<784;ii++)
+                {
+                    fscanf(fptr,"%f",&A[ii]);
+                }
+                fclose(fptr);
+            }
+            else if(size==72)
+            {
+                FILE *fptr = fopen("weights.txt", "r");
+                //printf("reached func");
+                for(int ii=0;ii<72;ii++)
+                {
+                   fscanf(fptr,"%f",&A[ii]);
+                }
+                fclose(fptr);
+            }
+            else if(size==1152)
+            {
+                FILE *fptr = fopen("weights.txt", "r");
+                //printf("reached func");
+                for(int ii=0;ii<1224;ii++)
+                {
+                    if(ii<72)
+                    fscanf(fptr,"%f",&A[ii]);
+                    else
+                    fscanf(fptr,"%f",&A[ii-72]);
+                }
+                fclose(fptr);   
+            }
+            else if(size==7840)
+            {
+                FILE *fptr = fopen("weights.txt", "r");
+                //printf("reached func");
+                for(int ii=0;ii<9064;ii++)
+                {
+                    if(ii<1224)
+                    fscanf(fptr,"%f",&A[ii]);
+                    else
+                    fscanf(fptr,"%f",&A[ii-1224]);
+                }
+                fclose(fptr);   
+            }
+            //printf("reached func\n");
 }
 
 void array_randomize(void* data, std::string type, int size) {
@@ -1767,7 +2156,7 @@ void array_randomize(void* data, std::string type, int size) {
         A = (float*)data;
         for (i = 0; i < size; ++i)
         {
-            A[i] = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/500)) - 250.0;
+            A[i] = 0.0;//static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/500)) - 250.0;
         }
     }
     else if(type.compare("double") == 0) 
@@ -1924,7 +2313,7 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
     gettimeofday(&start,NULL); 
     unsigned long long int  start_time_launch=(unsigned long long int )(start.tv_sec*1000000+start.tv_usec);
     // kl_info.kex.start_time=start_time_launch;
-    printf("dispatch %d: BEGIN: %llu\n",kl_info.task->traceID,get_current_time());
+    PERSISTENCE_DEBUG printf("dispatch %d: BEGIN: %llu\n",kl_info.task->traceID,get_current_time());
     // kl_info.finished=0;
     // printf("DISPATCHING\n");
     
@@ -1992,36 +2381,43 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
 
     // printf("before create buffer\n");
     //Creating buffers for device
-    cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset);
+    KernelInfo *kernel_info = kl_info.task->kernels[index];
+    PERSISTENCE_DEBUG printf("Configured kernel status: %d\n",kernel_info->configured[kl_info.platform_pos]);
+    if (!kernel_info->configured[kl_info.platform_pos])
+        cl_create_buffers(ctx, (KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize,dataoffset,kl_info.platform_pos);
     // printf("after create buffer\n");
 
-
+    
     //setting kernel arguments
     cl_set_kernel_args((KernelInfo&)*(kl_info.task->kernels[index]), kl_info.io, kl_info.platform_pos,datasize);     
-    clSetUserEventStatus(ev, CL_COMPLETE); 
+    
 
 
     kl_info.kex.write_start_h=get_current_time();
-    kl_info.ke.write = cl_enqueue_write_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize, dataoffset, ev);
-    status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->noInputBuffers ,&(kl_info.ke.write[0]) ,&barrier_ev_write );
-    kl_info.ke.barrier_write = barrier_ev_write;
+    PERSISTENCE_DEBUG printf("clEnqueueBuffer with datasize %d\n",datasize);
+    kl_info.ke.write = cl_enqueue_write_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.io, kl_info.task->data, datasize, dataoffset, ev,kl_info.platform_pos);
+    // status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->noInputBuffers ,&(kl_info.ke.write[0]) ,&barrier_ev_write );
+    // kl_info.ke.barrier_write = barrier_ev_write;
+    clSetUserEventStatus(ev, CL_COMPLETE); 
     clFlush(cmd_q);
 
     kl_info.kex.nd_start_h=get_current_time();
-    kl_info.ke.exec = cl_enqueue_nd_range_kernel(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.platform_pos, datasize,kl_info.ke.barrier_write);//kl_info.ke.write.back());
+    PERSISTENCE_DEBUG printf("clEnqueueNDRangeKernel with datasize %d\n",datasize);
+    kl_info.ke.exec = cl_enqueue_nd_range_kernel(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]), kl_info.platform_pos, datasize,kl_info.ke.write.back());//kl_info.ke.write.back());
     
-   clFlush(cmd_q);
-   
+    clFlush(cmd_q);
+    PERSISTENCE_DEBUG printf("clEnqueueReadBuffer with datasize %d\n",datasize);
     kl_info.kex.read_start_h=get_current_time();
-    kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec);
+    kl_info.ke.read = cl_enqueue_read_buffers(&(kl_info.kex),cmd_q, *(kl_info.task->kernels[index]),kl_info.io, kl_info.task->data, datasize, dataoffset,kl_info.ke.exec,kl_info.platform_pos);
     
    clFlush(cmd_q);
-    status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->outputBuffers.size(),&(kl_info.ke.read[0]) ,&barrier_ev_read );    
-    kl_info.ke.barrier_read = barrier_ev_read;
+    // status = clEnqueueBarrierWithWaitList ( cmd_q ,kl_info.task->kernels[index]->outputBuffers.size(),&(kl_info.ke.read[0]) ,&barrier_ev_read );    
+    // kl_info.ke.barrier_read = barrier_ev_read;
    clFlush(cmd_q);
     //status = clSetEventCallback(kl_info.ke.read[kl_info.ke.read.size()-1], CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);
-    
-    status = clSetEventCallback(kl_info.ke.barrier_read, CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);    
+    PERSISTENCE_DEBUG printf("clSetEventCallback %d\n",datasize);
+    status = clSetEventCallback(kl_info.ke.read.back(), CL_COMPLETE, &notify_callback_update_release, (void*)&kl_info);    
+    PERSISTENCE_DEBUG printf("Settting event callback done\n");
     clFlush(cmd_q);
 
     gettimeofday(&end,NULL);
@@ -2041,8 +2437,9 @@ cl_event dispatch(KernelLaunchInfo& kl_info ) {
         fprintf(fp,"dispatch: END: %llu \n",get_current_time());
         fflush(fp);
     }
-    printf("dispatch %d: END: %llu\n",kl_info.task->traceID,get_current_time());
-    return barrier_ev_read;
+    PERSISTENCE_DEBUG printf("dispatch %d: END: %llu\n",kl_info.task->traceID,get_current_time());
+    kernel_info->configured[kl_info.platform_pos]=1;
+    return kl_info.ke.read.back();
 }
 
 unsigned int calculate_ip_buffer_size(unsigned int size,int ip_index,KernelInfo& ki){
@@ -2066,6 +2463,7 @@ unsigned int calculate_ip_buffer_size(unsigned int size,int ip_index,KernelInfo&
         fprintf(fp,"calculate_ip_buffer_size: END: %llu \n",get_current_time());
         fflush(fp);
     }
+    printf("Input buffer size: %d\n",buffersize);
     return buffersize;
 }
         
@@ -2109,7 +2507,7 @@ unsigned int calculate_op_buffer_size(unsigned int size,int op_index,KernelInfo&
         fprintf(fp,"calculate_op_buffer_size: END: %llu \n",get_current_time());
         fflush(fp);
     }
-
+    printf("Output buffer size: %d\n",buffersize);
     return buffersize;
 }
 
@@ -2136,7 +2534,7 @@ unsigned int calculate_op_buffer_offset(unsigned int dataoffset,int op_index,Ker
     return bufferoffset;
 }
 
-void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset) {
+void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset,int dtype) {
 
     if (LOG_LEVEL>=1)
         fprintf(fp,"cl_create_buffers: BEGIN: %llu \n",get_current_time());
@@ -2144,12 +2542,17 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
     int i;
     unsigned int datasize, buffer_offset;
     cl_int status;
+    
+    
     for (i = 0; i < ki.inputBuffers.size(); ++i)
     {
+        PERSISTENCE_DEBUG printf("Creating input buffer\n");
         datasize=calculate_ip_buffer_size(size,i,ki);
         buffer_offset=calculate_ip_buffer_offest(dataoffset,i,ki);        
-
-        io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i]+ buffer_offset, &status));
+        if(dtype==PLATFORM_GPU)
+            io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, datasize, NULL, &status));
+        else
+            io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i]+ buffer_offset, &status));
         // io.push_back(clCreateBuffer(ctx, CL_MEM_READ_ONLY |CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR, datasize, data[i]+ buffer_offset, &status));
         // printf("cl_create_buffers:Input Data Start: %u , data: %f  ,datasize: %u, buffer_offset:%u  \n",data[i]+buffer_offset,*((float*)(data[i]+buffer_offset)),datasize,buffer_offset);
         if(LOG_LEVEL==1)
@@ -2162,11 +2565,13 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
     }
     for (i = 0; i < ki.outputBuffers.size(); ++i)
     {     
-
+        PERSISTENCE_DEBUG printf("Creating output buffer\n");
         datasize=calculate_op_buffer_size(size,i,ki);
         buffer_offset=calculate_op_buffer_offset(dataoffset,i,ki);   
-
-        io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i + ki.inputBuffers.size()]+ buffer_offset, &status));
+        if(dtype==PLATFORM_GPU)
+            io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, datasize, NULL, &status));
+        else
+            io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, datasize, data[i + ki.inputBuffers.size()]+ buffer_offset, &status));
         // io.push_back(clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR, datasize, data[i + ki.inputBuffers.size()]+ buffer_offset, &status));
 
         // printf("cl_create_buffers:Output Data Start: %u , data: %f  ,datasize: %u, buffer_offset:%u  \n",data[i+ ki.inputBuffers.size()]+buffer_offset,*((float*)(data[i+ ki.inputBuffers.size()]+buffer_offset)),datasize,buffer_offset);
@@ -2178,7 +2583,7 @@ void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io,
         fprintf(fp,"cl_create_buffers: END: %llu \n",get_current_time());
         fflush(fp);
     }
-
+    PERSISTENCE_DEBUG printf("clCreateBuffers completed with %lu input buffers and $%lu output buffers\n",ki.inputBuffers.size(), ki.outputBuffers.size());
 }
 void cl_set_kernel_args(KernelInfo& ki, std::vector<cl_mem>& io, int object,unsigned int datasize) {
     
@@ -2251,7 +2656,7 @@ void cl_set_kernel_args(KernelInfo& ki, std::vector<cl_mem>& io, int object,unsi
     
 }
 
-std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep) {
+std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep, int dtype) {
 
     if (LOG_LEVEL>=1)
         fprintf(fp,"cl_enqueue_write_buffers: BEGIN: %llu \n",get_current_time());
@@ -2267,9 +2672,25 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
     int i;
     unsigned int datasize, buffer_offset, element_offset;
     cl_int status;
-    std::vector<cl_event> finish(ki.noInputBuffers);
+    int num_buffers = 0;
+
+    if(ki.configured[dtype])
+        for(int i =0;i<ki.inputBuffers.size();i++)
+        {
+            if(!std::get<3>(ki.inputBuffers.at(i)))
+                num_buffers+=1;
+        }
+    else
+    {
+        num_buffers = ki.noInputBuffers;
+    }
+    PERSISTENCE_DEBUG printf("Number of events to be set for write buffers: %d\n",num_buffers);
+    std::vector<cl_event> finish(num_buffers);
+    if(!EVENTS_ENABLE)
+        finish.clear();
     cl_uint mem_size;
     void* host_mem;
+    int counter = 0;
     for (i = 0; i < ki.inputBuffers.size(); ++i)
     {
         datasize=calculate_ip_buffer_size(size,i,ki);
@@ -2283,24 +2704,61 @@ std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_comm
         gettimeofday(&c_time,NULL);
         unsigned long long int current_time=(unsigned long long int )(c_time.tv_sec*1000000000+c_time.tv_usec*1000);  
         // printf("get_curtime_write_start: %llu \n\\\\*****************************************************\n",current_time);
-        if (dep != NULL && i==0)
-            status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[i]));     
-        else if(dep != NULL && i>0)
-            status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &(finish[i-1]), &(finish[i]));
- 
+        int persistent = std::get<3>(ki.inputBuffers.at(i));
+        if(!ki.configured[dtype]) // not run once
+        {
+            PERSISTENCE_DEBUG printf("writeBuffer: kernel is deployed for the first time\n");
+            if(EVENTS_ENABLE)
+            {
+                if (dep != NULL && counter==0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[counter]));     
+                else if(dep != NULL && counter>0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &(finish[counter-1]), &(finish[counter]));
+                counter++;
+            }
+            else
+            {
+                if (dep != NULL && counter==0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, NULL);     
+                else if(dep != NULL && counter>0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 0, NULL, NULL);
+                counter++;   
+            }
+        }
+        else if(!persistent) // run once and buffer is not persistent i.e. image needs to be written
+        {
+            PERSISTENCE_DEBUG printf("writeBuffer: Kernel has been deployed already. Setting only persistent buffers\n");
+            if(EVENTS_ENABLE)
+            {
+                if (dep != NULL && counter==0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, &(finish[counter]));     
+                else if(dep != NULL && counter>0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &(finish[counter-1]), &(finish[counter]));
+                counter++;
+            }
+            else
+            {
+                if (dep != NULL && counter==0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 1, &dep, NULL);     
+                else if(dep != NULL && counter>0)
+                    status = clEnqueueWriteBuffer(cmd_q, io.at(i), CL_FALSE, 0, datasize, data[i] + buffer_offset, 0, NULL, NULL);
+                counter++;   
+            }
+        }
         fprintf(fp,"\tInputBufferSize: %d\n",datasize);
         fprintf(fp,"\tInputBufferOffset: %d\n",buffer_offset);
         check(status, "Enqueing Write Buffers"); 
         //fprintf(fp,"\ncl_enqueue_write_buffers: finishEvent%d.write: %u - %u",i,&finish[i],finish[i] );
         
     }
-
+    PERSISTENCE_DEBUG printf("clEnqueueWriteBuffer with %d buffers\n",num_buffers);
     if (LOG_LEVEL>=1){
         fprintf(fp,"cl_enqueue_write_buffers: END: %llu \n",get_current_time());
         fflush(fp);
     }
 
     return finish;
+    
 }
 
 
@@ -2335,40 +2793,59 @@ cl_event cl_enqueue_nd_range_kernel(KernelExecutionInfo *di,cl_command_queue cmd
     if(object == 0 || object == 1)
     {    if(ki.localWorkSize[0] != 0)
         {
+            PERSISTENCE_DEBUG printf("ND Range kernel when local work size is known\n");
            // fprintf(fp,"Local WorkSize set manually\n");
-            status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObjects[object], ki.workDimension, 0, globalWorkSize, ki.localWorkSize, 1, &dep, &finish);
+            if(EVENTS_ENABLE)
+                status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObjects[object], ki.workDimension, 0, globalWorkSize, ki.localWorkSize, 1, &dep, &finish);
+            else
+                status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObjects[object], ki.workDimension, 0, globalWorkSize, ki.localWorkSize, 0, NULL, NULL);
         }
         else
         {
             //fprintf(fp,"Local WorkSize set during runtime \n");
-            status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObjects[object], ki.workDimension, 0, globalWorkSize, NULL, 1, &dep, &finish);
+            PERSISTENCE_DEBUG printf("ND Range kernel when local work size is not known\n");
+            // size_t localWorkSize[3];
+            // localWorkSize[0]=256;
+            // localWorkSize[1]=1;
+            // localWorkSize[2]=1;
+            if(EVENTS_ENABLE)
+                status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObjects[object], ki.workDimension, 0, globalWorkSize, NULL, 1, &dep, &finish);
+            else
+            status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObjects[object], ki.workDimension, 0, globalWorkSize, NULL, 0, NULL, NULL);
+            // status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObjects[object], ki.workDimension, 0, globalWorkSize, localWorkSize, 1, &dep, &finish);
         }
         char msg[256];
-        sprintf(msg, "Enqued ND Range Kernel with WD %d GWS %d %d %d ",ki.workDimension, globalWorkSize[0], globalWorkSize[1], globalWorkSize[2]);
+        sprintf(msg, "Enqued ND Range Kernel with WD %d GWS %lu %lu %lu ",ki.workDimension, globalWorkSize[0], globalWorkSize[1], globalWorkSize[2]);
         check(status, msg);
         if (LOG_LEVEL >=1)
-            fprintf(fp,"\tEnqued ND Range Kernel with WD %d GWS %d %d %d\n ",ki.workDimension, globalWorkSize[0], globalWorkSize[1], globalWorkSize[2]);
+            fprintf(fp,"\tEnqued ND Range Kernel with WD %d GWS %lu %lu %lu\n ",ki.workDimension, globalWorkSize[0], globalWorkSize[1], globalWorkSize[2]);
 
         //fprintf(fp,"\ncl_enqueue_nd_range_kernel: finishEvent%d.exec: %u - %u",i,&finish,finish );
     }
     
     if(object == -1) {
         if(ki.localWorkSize[0] != 0)
-            status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObject, ki.workDimension, 0, globalWorkSize, ki.localWorkSize, 1, &dep, &finish);
+            if(EVENTS_ENABLE)
+                status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObject, ki.workDimension, 0, globalWorkSize, ki.localWorkSize, 1, &dep, &finish);
+            else
+                status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObject, ki.workDimension, 0, globalWorkSize, ki.localWorkSize, 0, NULL, NULL);
         else
-            status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObject, ki.workDimension, 0, globalWorkSize, NULL, 1, &dep, &finish);
+            if(EVENTS_ENABLE)
+                status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObject, ki.workDimension, 0, globalWorkSize, NULL, 1, &dep, &finish);
+            else
+                status = clEnqueueNDRangeKernel(cmd_q, ki.kernelObject, ki.workDimension, 0, globalWorkSize, NULL, 0, NULL, NULL);
         check(status, "Enqueing ND Range Kernel");       
     }
     if (LOG_LEVEL>=1){
         fprintf(fp,"cl_enqueue_nd_range_kernel: END: %llu \n",get_current_time());
         fflush(fp);
     }
-
+    PERSISTENCE_DEBUG printf("%d Enqueued kernel\n",__LINE__);
     return finish;
 }
 
 
-std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep) {
+std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep, int dtype) {
 
     if (LOG_LEVEL>=1)
         fprintf(fp,"cl_enqueue_read_buffers: BEGIN: %llu \n",get_current_time());
@@ -2383,8 +2860,23 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
 
     int i;
     unsigned int datasize, buffer_offset, element_offset;
-    std::vector<cl_event> finish(ki.noOutputBuffers);
+    int num_buffers = 0;
+    if(ki.configured[dtype])
+        for(int i =0;i<ki.outputBuffers.size();i++)
+        {
+            if(!std::get<3>(ki.outputBuffers.at(i)))
+                num_buffers+=1;
+        }
+    else
+    {
+        num_buffers = ki.noOutputBuffers;
+    }
+    PERSISTENCE_DEBUG printf("Read Event setup for %d buffers\n",num_buffers);
+    std::vector<cl_event> finish(num_buffers);
+    if(!EVENTS_ENABLE)
+        finish.resize(1);
     cl_int status;
+    int counter = 0;
     for (i = 0; i < ki.outputBuffers.size(); ++i)
     {
         datasize=calculate_op_buffer_size(size,i,ki);
@@ -2394,10 +2886,67 @@ std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command
         // fprintf(fp,"\tOutputBufferSize: %d\n",datasize);
 
         fprintf(fp,"\tOutputBufferOffset: %d\n",buffer_offset);             
-        if (dep != NULL && i==0)
-            status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[i]);    
-        else if(dep != NULL && i>0)
-            status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &finish[i-1], &finish[i]);
+        int persistent = std::get<3>(ki.inputBuffers.at(i));
+        if(!ki.configured[dtype])
+        { // not run once
+            PERSISTENCE_DEBUG printf("readBuffer: Kernel has not been deployed yet.\n");
+            
+            if (dep != NULL && i==0)
+            {
+                if(EVENTS_ENABLE)
+                    status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[i]);    
+                else
+                {
+                    if(counter!=num_buffers-1)
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, NULL);    
+                    else
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, &finish[0]);    
+                }
+            }
+            else if(dep != NULL && i>0)
+            {
+                if(EVENTS_ENABLE)
+                    status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &finish[i-1], &finish[i]);
+                else
+                {
+                    if(counter!=num_buffers-1)
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, NULL);
+                    else
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, &finish[0]);                        
+                }
+            }
+            counter++;
+        }
+        else if(!persistent)
+        {
+            PERSISTENCE_DEBUG printf("readBuffer: Kernel has  already been deployed once.\n");
+            if (dep != NULL && i==0)
+            {
+                if(EVENTS_ENABLE)
+                    status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &dep, &finish[counter]);    
+                else
+                {
+                    if(counter!=num_buffers-1)
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, NULL);    
+                    else
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, &finish[0]);    
+                }
+            }
+            else if(dep != NULL && i>0)
+            {
+                if(EVENTS_ENABLE)
+                    status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 1, &finish[counter-1], &finish[counter]);
+                       
+                else
+                {
+                    if(counter!=num_buffers-1)
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, NULL);
+                    else
+                        status = clEnqueueReadBuffer(cmd_q, io.at(i + ki.inputBuffers.size()), CL_FALSE, 0, datasize, data[i + ki.inputBuffers.size()] + buffer_offset, 0, NULL, &finish[0]);
+                }
+            }
+            counter++;
+        }
         fprintf(fp,"\tOutputBufferSize: %d\n",datasize);
         fprintf(fp,"\tOutputBufferOffset: %d\n",buffer_offset);        
         // for(int d=0;d<size;d++)
@@ -2482,8 +3031,8 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 
 
     unsigned long long int release_buff_Kevent_time=get_current_time();
-    release_buffers(kl->io);    
-    release_kernel_events(kl->ke);
+    // #STOP_RELEASE release_buffers(kl->io);    
+    // release_kernel_events(kl->ke);
     release_buff_Kevent_time=get_current_time()-release_buff_Kevent_time;
 
 
@@ -2507,7 +3056,31 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     unsigned long long int local_d=kl->task->deadline;//+ncb_buffer+time_buffer+(unsigned long long int)(time_factor*kl->task->exTime);
     // printf("local_d-%d: %llu ncb_buffer: %llu deadline:%llu \n",kl->task->traceID,local_d,ncb_buffer,kl->task->deadline)  ;  
 
-    
+    std::string name; 
+    printf("Callback traceid %d\n",kl->task->traceID);
+    // std::unique_lock<std::mutex> lk(run_kernel_lock);
+    // num_profile_kernels++;
+    // Profiling with microkernel
+    // if(num_profile_kernels == 2)
+    //     processed = true;
+    ////////////////////////////
+
+    //////////////////////////////
+   // lk.unlock();
+   // if(processed)
+   //     cv.notify_one();
+    if(kl->task->traceID!=-1)
+    {
+        name=kl->task->taskID.c_str();
+        kl->finished=1;
+        printf("Resetting profilekernel_start to 1\n");
+    }
+    else
+    {
+        name="micro_kernel";  
+        kl->finished=1; 
+        printf("Resetting microkernel_start to 1\n");
+    }
     if(kl->task->traceID!=-1)
     {   
         freqChange_time=get_current_time();  
@@ -2548,7 +3121,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
             int instance=kl->task->dagInfo->instanceID;
             int global_dagid=kl->task->dagInfo->globalDAGID;
             // printf("job %d instance %d global_dagid %d",job,instance,global_dagid);
-            
+            printf("isTerminal? %d\n",kl->task->isTerminal);
             if(kl->task->isTerminal==1)
             {
                 terminalNodeCal_time=get_current_time();
@@ -2620,7 +3193,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
 
             releaseHostArray_time=get_current_time();
             // printf("release_host_arrays b4\n");
-            release_host_arrays(kl->task->data);
+            // #STOP_RELEASE release_host_arrays(kl->task->data);
             // printf("release_host_arrays done\n");
             releaseHostArray_time=get_current_time()-releaseHostArray_time;
 
@@ -2771,6 +3344,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     // while (test_and_set(&nlock,0, 1))
     //         ;
     mtx_nlock.lock(); 
+    printf("Nkernels %d\n", nKernels);
     nKernels--;
     mtx_nlock.unlock();
     // nlock=0;
@@ -2792,11 +3366,7 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     else
         notify_cb_buffer_g+=get_current_time()-end;
 
-    std::string name; 
-    if(kl->task->traceID!=-1)
-        name=kl->task->taskID.c_str();
-    else
-        name="micro_kernel";   
+
     printf("******Kernel Stat: %s %u %d-%d %u %llu %llu %llu %llu *******\n",name.c_str(),kl->size,kl->platform_pos,kl->device_pos,kl->frequency,timing,kl->kex.rel_start_time,kl->kex.rel_end_time,kl->kex.notify_callback_rel_end_time);
     
     kl->kex.notify_callback_rel_end_time=get_current_time();        
@@ -2831,29 +3401,67 @@ void CL_CALLBACK notify_callback_update_release (cl_event event, cl_int event_co
     }
     printf("notify_callback_update_release for task %d: END: %llu \n",kl->task->traceID,get_current_time());  
     printf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-
+    std::unique_lock<std::mutex> lk(run_kernel_lock);
+    num_profile_kernels++;
+    if(num_profile_kernels == 1)
+        processed = true;
+    //////////////////////////////
+    lk.unlock();
+    if(processed)
+        cv.notify_one();
 }
 
-
-void dump_execution_time_statistics(KernelExecutionInfo kex,int dag_id, int task_id, std::ofstream &ofs)
+void dump_profile_statistics(KernelLaunchInfo *kl,std::ofstream &ofs)
+{
+    std::string timing_information = "";
+    KernelExecutionInfo kex = kl->kex;
+    KernelEvents ke = kl->ke;
+    cout<<"KERNEL EVENTS : write size " <<ke.write.size() << " read size " <<ke.read.size()<<"\n";
+    timing_information += ke.dump_times();
+    stringstream ss;
+    ss <<"getimage_time:" << kex.get_image_end_time - kex.get_image_start_time << ";host_time:" << kex.rel_end_time-kex.rel_start_time <<"\n";
+    timing_information +=ss.str();
+    PERSISTENCE_DEBUG cout<<timing_information;
+    ofs << timing_information;
+    // ofs.close();    
+}
+void dump_total_time(KernelLaunchInfo *kl,std::ofstream &ofs)
+{
+    std::string timing_information = "";
+    KernelExecutionInfo kex = kl->kex;
+    stringstream ss;
+    ss <<"getimage_time:" << kex.get_image_end_time - kex.get_image_start_time << ";host_time:" << kex.rel_end_time-kex.rel_start_time <<"\n";
+    timing_information +=ss.str();
+    PERSISTENCE_DEBUG cout<<timing_information;
+    ofs << timing_information;
+    // ofs.close();    
+}
+void dump_execution_time_statistics(KernelLaunchInfo *kl,int dag_id, int task_id, std::ofstream &ofs)
 {
 
-    unsigned long long int w = convert_to_relative_time(kex.writeEnd,kex.writeStart);
-    unsigned long long int e = convert_to_relative_time(kex.ndEnd,kex.ndStart);
-    unsigned long long int r = convert_to_relative_time(kex.readEnd,kex.readStart);
+    KernelExecutionInfo kex = kl->kex;
+    KernelEvents ke = kl->ke;
+
+    ke.print();
+    printf("-------------------------TIMESTAMP DUMP BEGINS---------------------------------\n");
+    ke.dump();
+    printf("-------------------------TIMESTAMP DUMP ENDS-----------------------------------\n");
+    // unsigned long long int w = convert_to_relative_time(kex.writeEnd,kex.writeStart);
+    // unsigned long long int e = convert_to_relative_time(kex.ndEnd,kex.ndStart);
+    // unsigned long long int r = convert_to_relative_time(kex.readEnd,kex.readStart);
     
-    unsigned long long int w_queue_submit = convert_to_relative_time(kex.writeSubmit,kex.writeQueued);
-    unsigned long long int w_submit_start = convert_to_relative_time(kex.writeStart,kex.writeSubmit);
+    // unsigned long long int w_queue_submit = convert_to_relative_time(kex.writeSubmit,kex.writeQueued);
+    // unsigned long long int w_submit_start = convert_to_relative_time(kex.writeStart,kex.writeSubmit);
 
-    unsigned long long int e_queue_submit = convert_to_relative_time(kex.ndSubmit,kex.ndQueued);
-    unsigned long long int e_submit_start = convert_to_relative_time(kex.ndStart,kex.ndSubmit);
+    // unsigned long long int e_queue_submit = convert_to_relative_time(kex.ndSubmit,kex.ndQueued);
+    // unsigned long long int e_submit_start = convert_to_relative_time(kex.ndStart,kex.ndSubmit);
 
-    unsigned long long int r_queue_submit = convert_to_relative_time(kex.readSubmit,kex.readQueued);
-    unsigned long long int r_submit_start = convert_to_relative_time(kex.readStart,kex.readSubmit);
+    // unsigned long long int r_queue_submit = convert_to_relative_time(kex.readSubmit,kex.readQueued);
+    // unsigned long long int r_submit_start = convert_to_relative_time(kex.readStart,kex.readSubmit);
 
-    unsigned long long int w_delay = convert_to_relative_time(kex.writeStart,kex.writeQueued);
-    unsigned long long int e_delay = convert_to_relative_time(kex.ndStart,kex.writeEnd);// - convert_to_relative_time(kex.writeEnd,kex.writeQueued);
-    unsigned long long int r_delay = convert_to_relative_time(kex.readStart,kex.writeQueued) - convert_to_relative_time(kex.ndEnd,kex.writeQueued);
+    // unsigned long long int w_delay = convert_to_relative_time(kex.writeStart,kex.writeQueued);
+    // unsigned long long int e_delay = convert_to_relative_time(kex.ndStart,kex.writeEnd);// - convert_to_relative_time(kex.writeEnd,kex.writeQueued);
+    // unsigned long long int r_delay = convert_to_relative_time(kex.readStart,kex.writeQueued) - convert_to_relative_time(kex.ndEnd,kex.writeQueued);
     
     unsigned long long int host_side_time = kex.notify_callback_rel_start_time-kex.write_buffers_start;
     double percent_host_overhead= (double)(host_side_time)/convert_to_relative_time(kex.readEnd,kex.writeQueued);
@@ -2865,8 +3473,8 @@ void dump_execution_time_statistics(KernelExecutionInfo kex,int dag_id, int task
     double percent_callback_overhead = (double)callback_overhead/host_side_time;
     // printf("SUBMIT-->START for NDRange %llu\n",e_submit_start);
     // std::ofstream ofs(filename,std::ofstream::out);
-    ofs << dag_id <<"\t\t"<<task_id<<"\t\t"<<w_delay<<"\t\t"<<w<<"\t\t"<<e_delay<<"\t\t"<<e<<"\t\t"<<r_delay<<"\t\t"<<r<<"\t\t"<<w+e+r<<"\t\t"<<host_side_time<<"\t\t"<<percent_host_overhead<<"\t\t"<<callback_overhead<<"\t\t"<<percent_callback_overhead<<"\n";
-    printf("%d \t\t %d \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu  \t\t %lf \t\t %llu \t\t %lf\n",dag_id,task_id,w_delay,w,e_delay,e,r_delay,r,w+e+r,host_side_time,percent_host_overhead,callback_overhead,percent_callback_overhead);
+    // ofs << dag_id <<"\t\t"<<task_id<<"\t\t"<<w_delay<<"\t\t"<<w<<"\t\t"<<e_delay<<"\t\t"<<e<<"\t\t"<<r_delay<<"\t\t"<<r<<"\t\t"<<w+e+r<<"\t\t"<<host_side_time<<"\t\t"<<percent_host_overhead<<"\t\t"<<callback_overhead<<"\t\t"<<percent_callback_overhead<<"\n";
+    // printf("%d \t\t %d \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu \t\t %llu  \t\t %lf \t\t %llu \t\t %lf\n",dag_id,task_id,w_delay,w,e_delay,e,r_delay,r,w+e+r,host_side_time,percent_host_overhead,callback_overhead,percent_callback_overhead);
     
     // dump_profile_event_timing(kex);
     
@@ -3282,23 +3890,6 @@ void childrenToReadyBuffer(KernelLaunchInfo& kl){
         fprintf(fp,"childrenToReadyBuffer: END: %llu \n",get_current_time());
         fflush(fp);
     }
-}
-
-
-void print_profile_event_status(cl_int status)
-{
-    if(status==CL_SUCCESS)
-        printf("CL_SUCCESS\n");
-    else if(status==CL_PROFILING_INFO_NOT_AVAILABLE)
-        printf("CL_PROFILING_INFO_NOT_AVAILABLE \n");
-    else if(status==CL_INVALID_VALUE)
-        printf("CL_INVALID_VALUE \n");
-    else if(status==CL_INVALID_EVENT)
-        printf("CL_INVALID_EVENT \n");
-    else if(status==CL_OUT_OF_RESOURCES)
-        printf("CL_OUT_OF_RESOURCES \n");
-    else if(status==CL_OUT_OF_HOST_MEMORY)
-        printf("CL_OUT_OF_HOST_MEMORY \n");
 }
 
 
@@ -4310,13 +4901,7 @@ void print_launch_info(KernelLaunchInfo& launchinfo){
     //printf("\n");
 }
 
-void check(cl_int status, const char* str) {
-    if(status != CL_SUCCESS) {
-        // fprintf(fp,"Failed : %s. Error %d\n", str, status);
-        printf("Failed %s Error %d\n", str,status);
-        exit(EXIT_FAILURE);
-    }
-}
+
 
 void printEventStatus(cl_event ev){  
     cl_int ev_status;
@@ -4431,13 +5016,23 @@ void host_synchronize(std::vector< std::vector<cl_command_queue>>& cmd_qs){
 
     printf("Synchronizing host with %d kernels\n",nKernels);
 
-    while(nKernels>0)
-        sleep(0.001);
-
-    for(int i=0;i<NumOfPlatforms;i++) 
+    // while(nKernels>0)
+    //     sleep(0.001);
+    printf("cmq_qs_size %d\n",cmd_qs.size());
+    printf("host_synchronize start\n");
+    for(int i=0;i<cmd_qs.size()-1;i++) //should ideally be i=0
+        {
+        /*if(i==0 && gpuss==0)
+            continue;
+        if(i==1 && cpuss==0)
+            continue;*/
         for(int j=0;j<cmd_qs[i].size();j++)
-            clFinish(cmd_qs[i][j]);
-
+            {
+                printf("i %d  j %d gpu %d cpu %d\n",i,j,gpuss,cpuss);
+                clFinish(cmd_qs[i][j]);
+            }
+        }
+        printf("host_synchronize end\n");
     // printf("Host Synchronised inside end: %d\n",nKernels);
         
     // while (nCPU < NumOfSysCPUs || nGPU < NumOfSysGPUs)
@@ -4468,7 +5063,333 @@ void release_buffers( std::vector<cl_mem>& buffers) {
     buffers.clear();
     return;
 }
+/////////////////////////////////////////////////////////
 
+void print_host_arrays(std:: vector <void*> &data){
+
+int i,n,j,k,l=4,m=4,q=5,o,p;
+    n=data.size();
+    if(count2==0)
+    {
+        count2++;
+        FILE *fptr = fopen("sample.txt", "w");
+        fprintf(fptr,"%d\n",n);
+        PRINT_ON_TERMINAL printf("%d\n",n);
+       for(i=0;i<n;i++)
+        {
+            if(i==0)
+            {
+                l=0;m=1;
+                o=0;
+                for(p=0;p<1;p++)
+                {
+                    for(j=0;j<28;j++)
+                    {
+                        for(k=0;k<28;k++)
+                        {
+                            fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                            PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                        }
+                        PRINT_ON_TERMINAL printf("\n");
+                        fprintf(fptr,"\n");
+                    }
+                    PRINT_ON_TERMINAL printf("\n\n");
+                    fprintf(fptr,"\n\n");
+                }
+                PRINT_ON_TERMINAL printf("\n\n\n");
+                fprintf(fptr,"\n\n\n");
+
+            }
+            if(i==1)
+            {
+                l=4;m=4;
+                o=0;
+                for(int q=0;q<8;q++)
+                {
+                    for(p=0;p<1;p++)
+                    {
+                        for(j=0;j<3;j++)
+                        {
+                            for(k=0;k<3;k++)
+                            {
+                                fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                                PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                            }
+                            PRINT_ON_TERMINAL printf("\n");
+                            fprintf(fptr,"\n");
+                        }   
+                        PRINT_ON_TERMINAL printf("\n\n");
+                        fprintf(fptr,"\n\n");
+                    }
+                    PRINT_ON_TERMINAL printf("\n\n\n");
+                    fprintf(fptr,"\n\n\n");
+                }
+                PRINT_ON_TERMINAL printf("\n\n\n\n");
+                fprintf(fptr,"\n\n\n\n");
+            
+            }
+            if(i==2)
+            {   o=0;
+                for(k=0;k<8;k++)
+                {
+                    fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                    PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                }
+                PRINT_ON_TERMINAL printf("\n\n\n\n");
+                fprintf(fptr,"\n\n\n\n");
+            }
+
+            if(i==3)
+            {
+                printf("I==3\n\n");
+                l=0;m=1;
+                o=0;
+                for(p=0;p<8;p++)
+                {
+                    for(j=0;j<28;j++)
+                    {
+                        for(k=0;k<28;k++)
+                        {
+                            fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                            PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                        }
+                        PRINT_ON_TERMINAL printf("\nj:%d",j);
+                        fprintf(fptr,"\n");
+                    }
+                    PRINT_ON_TERMINAL printf("\n\np:%d",p);
+                    fprintf(fptr,"\n\n");
+                }
+                PRINT_ON_TERMINAL printf("\n\n\np end");
+                fprintf(fptr,"\n\n\n");
+
+            }
+            if(i==3)
+            fclose(fptr);
+        }printf("CONV");
+    }
+    else if(count2==1)
+    {
+        count2++;
+        FILE *fptr = fopen("sample1.txt", "w");
+        //n=data.size();
+        fprintf(fptr,"%d\n",n);
+        printf("%d\n",n);
+        for(i=0;i<n;i++)
+        {   m=28;l=28;
+            if(i==1)
+            {l=14;m=14;
+            }
+            o=0;
+            for(p=0;p<8;p++)
+            {
+            for(j=0;j<m;j++)
+            {
+                for(k=0;k<l;k++)
+                {
+                    fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                    PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                }
+            PRINT_ON_TERMINAL printf("\n");
+            fprintf(fptr,"\n");
+            }
+            PRINT_ON_TERMINAL printf("\n\n");
+            fprintf(fptr,"\n\n");
+            }
+            PRINT_ON_TERMINAL printf("\n\n\n");
+            fprintf(fptr,"\n\n\n");
+        }
+        if(i==1)
+        fclose(fptr);
+    }
+    else if(count2==2)
+    {
+        count2++;
+        FILE *fptr = fopen("sample2.txt", "w");
+        fprintf(fptr,"%d\n",n);
+        printf("%d\n",n);
+       for(i=0;i<n;i++)
+        {
+            if(i==0)
+            {
+                l=0;m=1;
+                o=0;
+                for(p=0;p<8;p++)
+                {
+                    for(j=0;j<14;j++)
+                    {
+                        for(k=0;k<14;k++)
+                        {
+                            fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                            PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                        }
+                        PRINT_ON_TERMINAL printf("\n");
+                        fprintf(fptr,"\n");
+                    }
+                    PRINT_ON_TERMINAL printf("\n\n");
+                    fprintf(fptr,"\n\n");
+                }
+                PRINT_ON_TERMINAL printf("\n\n\n");
+                fprintf(fptr,"\n\n\n");
+
+            }
+            if(i==1)
+            {
+                l=4;m=4;
+                o=0;
+                for(int q=0;q<16;q++)
+                {
+                    for(p=0;p<8;p++)
+                    {
+                        for(j=0;j<3;j++)
+                        {
+                            for(k=0;k<3;k++)
+                            {
+                                fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                                PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                            }
+                            PRINT_ON_TERMINAL printf("\n");
+                            fprintf(fptr,"\n");
+                        }   
+                        PRINT_ON_TERMINAL printf("\n\n");
+                        fprintf(fptr,"\n\n");
+                    }
+                    PRINT_ON_TERMINAL printf("\n\n\n");
+                    fprintf(fptr,"\n\n\n");
+                }
+                PRINT_ON_TERMINAL printf("\n\n\n\n");
+                fprintf(fptr,"\n\n\n\n");
+            
+            }
+            if(i==2)
+            {   o=0;
+                for(k=0;k<16;k++)
+                {
+                    fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                    PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                }
+                PRINT_ON_TERMINAL printf("\n\n\n\n");
+                fprintf(fptr,"\n\n\n\n");
+            }
+
+            if(i==3)
+            {
+                printf("I==3\n\n");
+                l=0;m=1;
+                o=0;
+                for(p=0;p<16;p++)
+                {
+                    for(j=0;j<14;j++)
+                    {
+                        for(k=0;k<14;k++)
+                        {
+                            fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                            PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                        }
+                        PRINT_ON_TERMINAL printf("\nj:%d",j);
+                        fprintf(fptr,"\n");
+                    }
+                    PRINT_ON_TERMINAL printf("\n\np:%d",p);
+                    fprintf(fptr,"\n\n");
+                }
+                PRINT_ON_TERMINAL printf("\n\n\np end");
+                fprintf(fptr,"\n\n\n");
+
+            }
+            if(i==3)
+            fclose(fptr);
+        }printf("CONV");
+    }
+    else if(count2==3)
+    {
+        count2++;
+        FILE *fptr3 = fopen("sample3.txt", "w");
+        //n=data.size();
+        fprintf(fptr3,"%d\n",n);
+        printf("%d\n",n);
+        for(i=0;i<n;i++)
+        {   m=14;l=14;
+            if(i==1)
+            {l=7;m=7;
+            }
+            o=0;
+            for(p=0;p<16;p++)
+            {
+            for(j=0;j<m;j++)
+            {
+                for(k=0;k<l;k++)
+                {
+                    fprintf(fptr3,"%f  ",*(((float *)data[i])+(o)));
+                    PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+                }
+            PRINT_ON_TERMINAL printf("\n");
+            fprintf(fptr3,"\n");
+            }
+            PRINT_ON_TERMINAL printf("\n\n");
+            fprintf(fptr3,"\n\n");
+            }
+            PRINT_ON_TERMINAL printf("\n\n\n");
+            fprintf(fptr3,"\n\n\n");
+        }
+        if(i==1)
+        fclose(fptr3);
+    }
+    else if(count2==4)
+    {
+        count2++;
+        FILE *fptr = fopen("sample4.txt", "w");
+    n=data.size();
+    fprintf(fptr,"%d\n",n);
+    printf("%d\n",n);
+    int m=1,q=784;
+    for(i=0;i<n;i++)
+    {
+        if(i==1)
+        {m=784;q=10;
+        //continue;
+        }
+        if(i==2)
+        {m=1;q=10;
+        }
+        o=0;
+        for(p=0;p<m;p++)
+        {
+        for(j=0;j<q;j++)
+        {
+                fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+                PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+        }
+        PRINT_ON_TERMINAL printf("\n\n");
+        fprintf(fptr,"\n\n");
+        }
+        PRINT_ON_TERMINAL printf("\n\n\n");
+        fprintf(fptr,"\n\n\n");
+    }
+    fclose(fptr);
+    }
+    else if(count2==5)
+    {
+        count2++;
+        FILE *fptr = fopen("sample5.txt", "w");
+    n=data.size();
+    fprintf(fptr,"%d\n",n);
+    printf("%d\n",n);
+    for(i=0;i<n;i++)
+    {
+        o=0;
+        for(k=0;k<10;k++)
+        {
+            fprintf(fptr,"%f  ",*(((float *)data[i])+(o)));
+            PRINT_ON_TERMINAL printf("%f  ",*(((float *)data[i])+(o++)));
+        }
+        PRINT_ON_TERMINAL printf("\n");
+        fprintf(fptr,"\n");
+    }
+    fclose(fptr);
+    }
+    return;
+}
+
+///////////////////////////////////////////////////////////////////////
 void release_host_arrays(std:: vector <void*> &data){
     fprintf(fp,"release_host_arrays begin\n");
     int i,n;
@@ -4501,6 +5422,8 @@ void release_kernel_events(KernelEvents& k) {
     {
         clReleaseEvent(k.read[i]);
     }
+    k.write.clear();
+    k.read.clear();
     return;
 }
 
@@ -4515,16 +5438,17 @@ void release_programs( std::vector<cl_program> all_programs ){
 void release_everything(std::vector<cl_context>& ctxs, std::vector< std::vector<cl_command_queue> >& cmd_qs) {
 
     int i, j;
-    for (j = 0; j < NumOfPlatforms; ++j)
-    {
-        for (i = 0; i < cmd_qs[j].size(); ++i)
-        {
-            clFinish(cmd_qs[j][i]);
+    printf("clFinish_cmd_qs\n");
+    // for (j = 0; j < cmd_qs.size(); ++j)//NumOfPlatforms
+    // {
+    //     for (i = 0; i < cmd_qs[j].size(); ++i)
+    //     {
+    //         clFinish(cmd_qs[j][i]);
             
-        }
-    }
-    
-    for (j = 0; j < NumOfPlatforms; ++j)
+    //     }
+    // }
+    printf("clReleaseCommandQueue\n");
+    for (j = 0; j < cmd_qs.size(); ++j)//NumOfPlatforms
     {
         for (i = 0; i < cmd_qs[j].size(); ++i)
         {
@@ -4535,7 +5459,7 @@ void release_everything(std::vector<cl_context>& ctxs, std::vector< std::vector<
             //     printf("clReleaseCommandQueue failed%d %d\n",j,i);
         }
     }
-    
+    printf("clReleaseContext\n");
     for (i = 0; i < ctxs.size(); ++i)
     {
         cl_int status=clReleaseContext(ctxs[i]);
@@ -4544,6 +5468,6 @@ void release_everything(std::vector<cl_context>& ctxs, std::vector< std::vector<
         // else
         //     printf("clReleaseContext failed %d\n",i);
     }
-    
+    printf("released_everything0\n");
     // printf("Exiting from  release_everything\n");
 }

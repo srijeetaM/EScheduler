@@ -45,7 +45,10 @@
 #include <CL/cl_ext.h>
 // Custom includes
 #include "string.h"
-#define PROFILE_ITERATIONS 10
+#define PROFILE_ITERATIONS 1
+
+/**************************** Global Variables ****************************************/
+
 int EVENTS_ENABLE;
 int microkernel_start=0;
 int profilekernel_start=0;
@@ -60,11 +63,9 @@ int PLATFORM_CPU;
 int G_BIG;
 int G_LITTLE;
 int C_BIG;
-int NumNodes_0;
-int NumNodes_1;
 int TempInterval;
 int POLE;
-int MODE;
+int CONTROLLER_MODE;
 int numOfHyperperiod;
 int LOG_LEVEL;
 int LOG_SCHEDULER;
@@ -75,7 +76,6 @@ int FACTOR;
 int SAFE;
 int isProfileMode;
 int monitorTemp;
-int controlerTemp;
 int generatePlot;
 int numOfDAGs;
 int raceToIdle;
@@ -98,10 +98,12 @@ std::mutex mtx_nlock;
 std::mutex mtx_devlock;
 std::mutex mtx_kernel_finished;
 std::mutex run_kernel_lock;
+std::mutex run_scheduler_lock;
 std::string outputbuffer;
-
 bool processed = false;
 std::condition_variable cv;
+
+
 /**************************** Helper functions ****************************************/
 
 //OpenCL Error Logs
@@ -625,7 +627,9 @@ typedef struct _kernellaunchinfo{
     unsigned int size;
     unsigned int offset;
     int queued;  
-    int reset;  
+    int reset; 
+    int released_b; 
+    int released_d;
     unsigned int frequency;
     int control_mode;
     int priority;
@@ -691,6 +695,7 @@ typedef struct _interval{
 }Interval;
 
 
+bool is_dev_available();
 unsigned long long int convert_to_relative_time( unsigned long long int t,unsigned long long int ref);
 void dump_profile_event_timing(KernelExecutionInfo kex);
 void dump_execution_time_statistics(KernelLaunchInfo *kl,int dag, int task,std::ofstream &ofs);
@@ -732,6 +737,7 @@ void print_temperature(Temperature* tmp);
 void monitor_temperature();
 void CL_CALLBACK notify_callback_print (cl_event event, cl_int event_command_exec_status, void *user_data);
 void childrenToReadyBuffer(KernelLaunchInfo& klinfo);
+void build_kernel_object(const char* filename);
 void build_all_kernel_objects(const char* directory);
 void read_dag_structure(const char* directory);
 void *taskToReadyB(void *vargp);
@@ -784,7 +790,7 @@ unsigned int calculate_ip_buffer_offest(unsigned int dataoffset,int ip_index,Ker
 unsigned int calculate_op_buffer_size(unsigned int size,int op_index,KernelInfo& ki);
 unsigned int calculate_op_buffer_offset(unsigned int dataoffset,int op_index,KernelInfo& ki);
 
-void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset);
+void cl_create_buffers(cl_context& ctx, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset,int dtype);
 void cl_set_kernel_args(KernelInfo& ki, std::vector<cl_mem>& io, int object,unsigned int datasize) ;
 std::vector<cl_event> cl_enqueue_write_buffers(KernelExecutionInfo *di , cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data, unsigned int size,unsigned int dataoffset, cl_event dep, int dtype);
 std::vector<cl_event> cl_enqueue_read_buffers(KernelExecutionInfo *di,cl_command_queue cmd_q, KernelInfo& ki, std::vector<cl_mem>& io, std::vector<void*>& data,unsigned int size,unsigned int dataoffset, cl_event dep, int dtype);
